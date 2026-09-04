@@ -3,6 +3,16 @@ module.exports = async function handler(req,res){
   const b=req.body||{};
   if(!b.name||!b.email) return res.status(400).json({error:"Name and email required"});
 
+  const rawConstraints=b.accessConstraints&&typeof b.accessConstraints==="object"?b.accessConstraints:{};
+  const accessConstraints={
+    query:String(rawConstraints.q||"").slice(0,300),
+    audience:String(rawConstraints.audience||"all").slice(0,30),
+    city:String(rawConstraints.city||"all").slice(0,100),
+    language:String(rawConstraints.language||"all").slice(0,30),
+    coordinator:String(rawConstraints.coordinator||"all").slice(0,30),
+    referral:String(rawConstraints.referral||"all").slice(0,30)
+  };
+
   const lead={
     name:String(b.name).slice(0,150),
     email:String(b.email).slice(0,320),
@@ -14,6 +24,7 @@ module.exports = async function handler(req,res){
     providerName:b.providerName?String(b.providerName).slice(0,300):null,
     sourcePage:String(b.sourcePage||"").slice(0,500),
     partnerRoute:"ameca",
+    accessConstraints,
     createdAt:new Date().toISOString()
   };
 
