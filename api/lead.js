@@ -1,4 +1,22 @@
+const ALLOWED={
+  audience:new Set(["visitor","resident","unknown"]),
+  city:new Set(["Tokyo","Osaka","Other / flexible","unknown"]),
+  language:new Set(["all","direct","interpreter"]),
+  coordinator:new Set(["all","required","not-required"]),
+  referral:new Set(["all","required","no"])
+};
+
+function enumValue(value,allowed,fallback){
+  const normalized=String(value||"").trim();
+  return allowed.has(normalized)?normalized:fallback;
+}
+
+function requestId(){
+  return `jh_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;
+}
+
 module.exports = async function handler(req,res){
+  res.setHeader("Cache-Control","no-store");
   if(req.method!=="POST") return res.status(405).json({error:"Method not allowed"});
 
   const b=req.body||{};
@@ -11,23 +29,25 @@ module.exports = async function handler(req,res){
 
   const rawConstraints=b.accessConstraints&&typeof b.accessConstraints==="object"?b.accessConstraints:{};
   const accessConstraints={
-    query:String(rawConstraints.q||"").slice(0,300),
-    audience:String(rawConstraints.audience||"all").slice(0,30),
-    city:String(rawConstraints.city||"all").slice(0,100),
-    language:String(rawConstraints.language||"all").slice(0,30),
-    coordinator:String(rawConstraints.coordinator||"all").slice(0,30),
-    referral:String(rawConstraints.referral||"all").slice(0,30)
+    query:String(rawConstraints.q||"").trim().slice(0,300),
+    audience:enumValue(rawConstraints.audience,ALLOWED.audience,"unknown"),
+    city:String(rawConstraints.city||"all").trim().slice(0,100),
+    language:enumValue(rawConstraints.language,ALLOWED.language,"all"),
+    coordinator:enumValue(rawConstraints.coordinator,ALLOWED.coordinator,"all"),
+    referral:enumValue(rawConstraints.referral,ALLOWED.referral,"all")
   };
 
-  const requestId=`jh_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;
+  const id=requestId();
+  res.setHeader("X-Request-Id",id);
+
   const lead={
-    requestId,
+    requestId:id,
     name:name.slice(0,150),
     email:email.slice(0,320),
-    audience:String(b.audience||"").slice(0,50),
-    city:String(b.city||"").slice(0,100),
-    need:String(b.need||"").slice(0,500),
-    notes:String(b.notes||"").slice(0,5000),
+    audience:enumValue(b.audience,ALLOWED.audience,"unknown"),
+    city:String(b.city||"unknown").trim().slice(0,100),
+    need:String(b.need||"").trim().slice(0,500),
+    notes:String(b.notes||"").trim().slice(0,5000),
     providerId:b.providerId?String(b.providerId).slice(0,150):null,
     providerName:b.providerName?String(b.providerName).slice(0,300):null,
     sourcePage:String(b.sourcePage||"").slice(0,500),
@@ -44,12 +64,20 @@ module.exports = async function handler(req,res){
 
   if(!endpoint){
     if(allowDemoLeads){
-      console.log("DEMO QUALIFIED LEAD",lead);
-      return res.status(200).json({ok:true,forwarded:false,demo:true,requestId});
+      console.log("DEMO QUALIFIED LEAD",{
+        requestId:id,
+        audience:lead.audience,
+        city:lead.city,
+        need:lead.need,
+        providerId:lead.providerId,
+        accessConstraints:lead.accessConstraints
+      });
+      return res.status(200).json({ok:true,forwarded:false,demo:true,requestId:id});
     }
+    res.setHeader("Retry-After","300");
     return res.status(503).json({
       error:"Coordinator handoff is temporarily unavailable. Please try again later.",
-      requestId
+      requestId:id
     });
   }
 
@@ -61,7 +89,8 @@ module.exports = async function handler(req,res){
       method:"POST",
       headers:{
         "Content-Type":"application/json",
-        "User-Agent":"Japan-Health-Lead-Handoff/1.0"
+        "User-Agent":"Japan-Health-Lead-Handoff/1.1",
+        "X-Request-Id":id
       },
       body:JSON.stringify({
         event:"qualified_healthcare_lead",
@@ -77,13 +106,13 @@ module.exports = async function handler(req,res){
     return res.status(200).json({
       ok:true,
       forwarded:true,
-      requestId
+      requestId:id
     });
   }catch(e){
-    console.error("PARTNER HANDOFF FAILED",{requestId,message:e&&e.message?e.message:"unknown"});
+    console.error("PARTNER HANDOFF FAILED",{requestId:id,message:e&&e.message?e.message:"unknown"});
     return res.status(502).json({
       error:"Coordinator handoff failed. Please try again later.",
-      requestId
+      requestId:id
     });
   }finally{
     clearTimeout(timeout);
