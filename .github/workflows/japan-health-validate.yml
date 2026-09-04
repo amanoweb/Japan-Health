@@ -20,9 +20,12 @@ jobs:
           node --check api/lead.js
           node --check scripts/validate-provider-data.js
           node --check scripts/validate-lead-contract.js
+          node --check scripts/validate-expertise-contract.js
           if [ -f api/health.js ]; then node --check api/health.js; fi
       - name: Validate provider data safety
         run: node scripts/validate-provider-data.js
+      - name: Validate typed expertise evidence
+        run: node scripts/validate-expertise-contract.js
       - name: Validate lead handoff contract
         run: node scripts/validate-lead-contract.js
       - name: Verify production invariants
