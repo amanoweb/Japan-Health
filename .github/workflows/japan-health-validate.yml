@@ -18,7 +18,10 @@ jobs:
         run: |
           node --check app.js
           node --check api/lead.js
+          node --check scripts/validate-provider-data.js
           if [ -f api/health.js ]; then node --check api/health.js; fi
+      - name: Validate provider data safety
+        run: node scripts/validate-provider-data.js
       - name: Verify production invariants
         run: |
           grep -Fq '<link rel="stylesheet" href="/styles.css"' index.html
@@ -28,3 +31,4 @@ jobs:
           grep -Fq 'does not diagnose' index.html
           grep -Fq 'Demo provider records are not real recommendations' index.html
           grep -Fq 'partnerRoute:"ameca"' app.js
+          grep -Fq 'AMECA_LEAD_WEBHOOK_URL' api/lead.js
