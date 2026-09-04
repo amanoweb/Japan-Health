@@ -1,0 +1,9 @@
+{
+  "productName": "GaitSense AI",
+  "shortDesc": "AI software for quantitative gait analysis in Parkinson's disease",
+  "intendedUse": "Analyze wearable sensor data to quantify gait features and support clinician assessment of motor function.",
+  "productType": "SaMD",
+  "specialty": "Neurology",
+  "aiMl": "yes",
+  "risk": "medium"
+}
