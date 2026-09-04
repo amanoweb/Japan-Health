@@ -1,34 +1,437 @@
-const providers=window.PROVIDERS||[],$=id=>document.getElementById(id);let lastTrigger=null;
-const human=v=>({yes:"Yes",no:"No",partial:"Partial",limited:"Limited",available:"Available",required:"Required",recommended:"Recommended",optional:"Optional","self-pay":"Self-pay",both:"Resident insurance + self-pay",resident:"Resident insurance",low:"Low"}[v]||v);
-const evidenceTypeLabel={disease_focus:"Disease focus",procedure:"Procedure",specialist_clinic:"Specialist clinic",second_opinion:"Second opinion",service:"Service",research_focus:"Research focus",legacy:"Expertise evidence"};
-function normalizeEvidence(p){return (p.expertiseEvidence||[]).map((e,i)=>typeof e==="string"?{type:"legacy",label:e,status:"demo",source:null,verified:null,id:`legacy-${i}`}:{type:e.type||"legacy",label:e.label||e.name||"Untitled evidence",status:e.status||"unverified",source:e.source||null,verified:e.verified||null,id:e.id||`evidence-${i}`});}
-function evidenceText(p){return normalizeEvidence(p).map(e=>`${evidenceTypeLabel[e.type]||e.type}: ${e.label}`).join(" ");}
-function queryTokens(q){return q.toLowerCase().split(/[^a-z0-9]+/).filter(x=>x.length>2);}
-function expertiseRelevance(p,q){if(!q)return 0;const needle=q.toLowerCase(),specialties=(p.specialties||[]).join(" ").toLowerCase(),evidence=evidenceText(p).toLowerCase(),notes=(p.notes||"").toLowerCase();let score=0;if(specialties.includes(needle))score+=60;if(evidence.includes(needle))score+=50;if(notes.includes(needle))score+=15;for(const t of queryTokens(q)){if(specialties.includes(t))score+=12;if(evidence.includes(t))score+=10;if(notes.includes(t))score+=2;}return score;}
-function enhanceStyles(){if($("jh-enhancement-styles"))return;const s=document.createElement("style");s.id="jh-enhancement-styles";s.textContent=`.match-panel{display:grid;gap:8px;margin:12px 0;padding:11px;border-radius:11px;background:#f8fbfd;border:1px solid #e3ebf2}.signal-row,.evidence-row{display:flex;flex-wrap:wrap;gap:5px}.signal,.evidence-chip{padding:5px 7px;border-radius:99px;font-size:8px;font-weight:800}.signal.good{background:#e8f7f2;color:#217a64}.signal.friction{background:#fff2df;color:#8a5a18}.evidence-chip{background:#eef3f8;color:#42566a}.handoff-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}.handoff-note{font-size:9px;line-height:1.5;color:#667789;margin:-4px 0 12px}.modal-box:focus{outline:3px solid rgba(23,109,240,.28);outline-offset:3px}.lead-status[role=alert]{min-height:18px}.score-breakdown{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}.score-factor{padding:8px;border:1px solid #e3ebf2;border-radius:9px;background:#fff}.score-factor small,.score-factor b{display:block}.score-factor small{font-size:7px;color:#718295;letter-spacing:.04em}.score-factor b{font-size:10px;margin-top:3px}.score-factor span{display:block;font-size:7px;line-height:1.35;color:#7d8c9b;margin-top:3px}.constraint-summary{font-size:9px;line-height:1.5;color:#526579;padding:9px 10px;background:#f7fafc;border:1px solid #e3ebf2;border-radius:9px;margin:0 0 12px}.evidence-note{font-size:8px;line-height:1.45;color:#718295;margin:7px 0}@media(max-width:650px){.handoff-fields,.score-breakdown{grid-template-columns:1fr 1fr}.modal{align-items:end;padding:0}.modal-box{width:100%;max-height:92vh;border-radius:20px 20px 0 0}}`;document.head.appendChild(s)}
-const constraints=()=>({q:($("q").value||"").trim(),audience:$("audience").value,city:$("city").value,language:$("language").value,coordinator:$("coord").value,referral:$("referral").value});
-function scoreBreakdown(p,c=constraints()){const direct={yes:100,partial:70,limited:35}[p.doctorEnglish]||20,interp=["yes","available"].includes(p.interpreter)?90:25,reception=p.receptionEnglish==="yes"?100:p.receptionEnglish==="partial"?65:30,docs=p.englishDocs==="yes"?100:p.englishDocs==="partial"?65:30;const communication=Math.round(direct*.45+interp*.30+reception*.15+docs*.10);const booking=Math.max(0,Math.min(100,85-(p.referral==="required"?30:0)-(p.coordinator==="required"?25:p.coordinator==="recommended"?10:0)));let eligibility=50+(p.selfPay==="yes"?20:0);if(c.audience!=="all")eligibility+=(Array.isArray(p.audience)&&p.audience.includes(c.audience))?30:-35;else eligibility+=Array.isArray(p.audience)&&p.audience.length>1?20:8;eligibility=Math.max(0,Math.min(100,eligibility));const cost=({high:100,medium:70,low:35}[p.priceTransparency]||25);return{communication,booking,eligibility,cost};}
-function accessScore(p,c=constraints()){const b=scoreBreakdown(p,c),score=Math.round(b.communication*.4+b.booking*.25+b.eligibility*.2+b.cost*.15),r=[];if(p.doctorEnglish==="yes")r.push("doctor-level English");else if(p.doctorEnglish==="partial")r.push("partial doctor English");else if(p.doctorEnglish==="limited")r.push("limited doctor English");if(["yes","available"].includes(p.interpreter))r.push("interpreter pathway");if(p.receptionEnglish==="yes")r.push("English reception");if(c.audience!=="all"&&p.audience?.includes(c.audience))r.push(`${c.audience} pathway in this record`);if(p.referral==="required")r.push("referral required");if(p.coordinator==="required")r.push("coordinator required");if(p.selfPay==="yes")r.push("self-pay pathway");if((p.priceTransparency||"low")==="low")r.push("costs need verification");return{score,reasons:r,breakdown:b};}
-const scoreLabel=n=>n>=80?"Very accessible":n>=65?"Accessible":n>=50?"Moderate":"Complex";
-function constraintText(c=constraints()){const parts=[];if(c.audience!=="all")parts.push(c.audience==="visitor"?"Visitor":"Resident");if(c.city!=="all")parts.push(c.city);if(c.q)parts.push(c.q);if(c.language==="direct")parts.push("Direct doctor English");if(c.language==="interpreter")parts.push("Interpreter acceptable");if(c.coordinator==="required")parts.push("Coordinator required");if(c.coordinator==="not-required")parts.push("No required coordinator");if(c.referral==="required")parts.push("Referral required");if(c.referral==="no")parts.push("No referral required");return parts.length?parts.join(" · "):"No care-finder constraints selected";}
-function syncUrl(){const c=constraints(),params=new URLSearchParams();Object.entries(c).forEach(([k,v])=>{if(v&&v!=="all")params.set(k,v)});const sort=$("sort")?.value||"fit";if(sort!=="fit")params.set("sort",sort);history.replaceState(null,"",`${location.pathname}${params.size?`?${params}`:""}${location.hash}`);}
-function restoreUrl(){const p=new URLSearchParams(location.search);if(p.has("q"))$("q").value=p.get("q");for(const id of ["audience","city","language","coord","referral"]){const key=id==="coord"?"coordinator":id;if(p.has(key)&&[...$(id).options].some(o=>o.value===p.get(key)))$(id).value=p.get(key)}return p.get("sort")||"fit";}
-function breakdownMarkup(sc){const items=[["Communication",sc.breakdown.communication,"Doctor / interpreter / reception / documents"],["Booking",sc.breakdown.booking,"Referral and coordinator friction"],["Eligibility",sc.breakdown.eligibility,"Selected audience + self-pay pathway"],["Cost data",sc.breakdown.cost,"Transparency only, not affordability"]];return `<div class="score-breakdown">${items.map(([k,v,d])=>`<div class="score-factor"><small>${k.toUpperCase()}</small><b>${v}/100</b><span>${d}</span></div>`).join("")}</div>`;}
-function badges(p){let a=[];if(p.doctorEnglish==="yes")a.push('<span class="badge">Doctor English</span>');else if(["partial","limited"].includes(p.doctorEnglish))a.push(`<span class="badge gray">Doctor English: ${human(p.doctorEnglish)}</span>`);if(["yes","available"].includes(p.interpreter))a.push('<span class="badge green">Interpreter</span>');if(["required","recommended"].includes(p.coordinator))a.push(`<span class="badge purple">Coordinator ${human(p.coordinator)}</span>`);return a.join("");}
-const costs=p=>[["Medical",p.medicalCost||"Unknown"],["Interpreter",p.interpreterCost||"Unknown"],["Coordinator",p.coordinatorCost||"Unknown"]].map(([k,v])=>`<div><small>${k.toUpperCase()}</small><b>${v}</b></div>`).join("");
-function evidenceMarkup(p,q=""){const e=normalizeEvidence(p),rel=expertiseRelevance(p,q);return `<div class="evidence-row">${e.map(x=>`<span class="evidence-chip">${evidenceTypeLabel[x.type]||x.type}: ${x.label}</span>`).join("")||'<span class="evidence-chip">No evidence added</span>'}</div>${q?`<p class="evidence-note">Search-evidence relevance: ${rel}. Used only to match the words you searched; it is not a clinical-quality score.</p>`:""}`;}
-function signals(p){const c=constraints(),m=[],f=[];if(c.audience!=="all"&&p.audience.includes(c.audience))m.push(c.audience==="visitor"?"Visitor access":"Resident access");if(c.city!=="all"&&p.city===c.city)m.push(c.city);if(c.language==="direct"&&p.doctorEnglish==="yes")m.push("Direct doctor English");if(c.language==="interpreter"&&["yes","available"].includes(p.interpreter))m.push("Interpreter available");if(c.referral==="no"&&p.referral==="no")m.push("No referral required");if(c.q&&expertiseRelevance(p,c.q)>0)m.push("Search terms found in specialty/evidence");if(p.referral==="required")f.push("Referral required");if(p.coordinator==="required")f.push("Coordinator required");if((p.priceTransparency||"low")==="low")f.push("Costs need verification");return{m:m.length?m:["Potential pathway"],f};}
-function ensureSort(defaultSort="fit"){if($("sort"))return;const s=document.createElement("select");s.id="sort";s.setAttribute("aria-label","Sort care options");s.innerHTML='<option value="fit">Best access fit</option><option value="relevance">Search evidence relevance</option><option value="name">Name A–Z</option>';document.querySelector(".filters")?.appendChild(s);if([...s.options].some(o=>o.value===defaultSort))s.value=defaultSort;s.oninput=()=>{render();syncUrl()};}
-function render(){const c=constraints(),q=c.q.toLowerCase();let a=providers.filter(p=>{const h=(p.name+" "+p.city+" "+p.area+" "+(p.specialties||[]).join(" ")+" "+(p.notes||"")+" "+evidenceText(p)).toLowerCase();return(!q||h.includes(q)||expertiseRelevance(p,q)>0)&&(c.audience==="all"||p.audience.includes(c.audience))&&(c.city==="all"||p.city===c.city)&&(c.language==="all"||(c.language==="direct"&&p.doctorEnglish==="yes")||(c.language==="interpreter"&&["yes","available"].includes(p.interpreter)))&&(c.coordinator==="all"||(c.coordinator==="required"&&p.coordinator==="required")||(c.coordinator==="not-required"&&p.coordinator!=="required"))&&(c.referral==="all"||(c.referral==="required"&&p.referral==="required")||(c.referral==="no"&&p.referral==="no"));});const sort=$("sort")?.value||"fit";a.sort((x,y)=>sort==="name"?x.name.localeCompare(y.name):sort==="relevance"?expertiseRelevance(y,c.q)-expertiseRelevance(x,c.q):(expertiseRelevance(y,c.q)-expertiseRelevance(x,c.q))*2+accessScore(y,c).score-accessScore(x,c).score);$("resultCount").textContent=`${a.length} options`;if(!a.length){$("providerGrid").innerHTML='<div class="empty-state"><h3>No demo match for these constraints.</h3><p>Japan Health preserves your requirements instead of silently relaxing them.</p><button class="small-btn primary" onclick="openLeadModal()">Ask a coordinator</button></div>';return}$("providerGrid").innerHTML=a.map(p=>{const sc=accessScore(p,c),sg=signals(p);return`<article class="provider-card"><h3>${p.name}</h3><div class="provider-meta">${p.city} · ${p.area} · ${(p.specialties||[]).join(" / ")}</div><div class="badge-row">${badges(p)}</div><div class="match-panel"><small>WHY IT MATCHES</small><div class="signal-row">${sg.m.map(x=>`<span class="signal good">${x}</span>`).join("")}</div>${sg.f.length?`<small>ACCESS FRICTION</small><div class="signal-row">${sg.f.map(x=>`<span class="signal friction">${x}</span>`).join("")}</div>`:""}</div>${c.q?evidenceMarkup(p,c.q):""}<p>${p.notes}</p><div class="score-row"><div class="score-ring"><b>${sc.score}</b><small>/100</small></div><div><strong>${scoreLabel(sc.score)}</strong><span>International access friction only — not clinical quality</span></div></div>${breakdownMarkup(sc)}<div class="provider-gridline"><div><small>REFERRAL</small><b>${human(p.referral)}</b></div><div><small>SELF-PAY</small><b>${human(p.selfPay)}</b></div><div><small>COORDINATOR</small><b>${human(p.coordinator)}</b></div><div><small>PRICE DATA</small><b>${human(p.priceTransparency)}</b></div></div><div class="cost-grid">${costs(p)}</div><div class="provider-actions"><button class="small-btn" onclick="openProvider('${p.id}')">View access details</button><button class="small-btn primary" onclick="openLeadModal('${p.id}')">Ask a coordinator</button></div><div class="source-line">Source: ${p.source} · Last verified: ${p.verified}</div></article>`}).join("");}
-["q","audience","city","language","coord","referral"].forEach(id=>$(id).oninput=()=>{render();syncUrl()});$("resetFilters").onclick=()=>{$("q").value="";["audience","city","language","coord","referral"].forEach(id=>$(id).value="all");if($("sort"))$("sort").value="fit";render();syncUrl()};document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{$("q").value=b.dataset.preset;location.hash="find";render();syncUrl()});
-function focusables(m){return[...m.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(x=>!x.disabled&&!x.hidden)}
-function openModal(m){lastTrigger=document.activeElement;m.classList.remove("hidden");m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");const box=m.querySelector(".modal-box");box?.setAttribute("tabindex","-1");box?.focus();document.body.style.overflow="hidden";}
-function closeModal(m){m.classList.add("hidden");document.body.style.overflow="";lastTrigger?.focus?.();lastTrigger=null;}
-function wireModal(m,close){m?.addEventListener("mousedown",e=>{if(e.target===m)close()});m?.addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault();close();return}if(e.key!=="Tab")return;const f=focusables(m);if(!f.length)return;if(e.shiftKey&&document.activeElement===f[0]){e.preventDefault();f.at(-1).focus()}else if(!e.shiftKey&&document.activeElement===f.at(-1)){e.preventDefault();f[0].focus()}});}
-window.openProvider=id=>{const p=providers.find(x=>x.id===id);if(!p)return;const sc=accessScore(p);$("providerDetail").innerHTML=`<span class="mini">ACCESS PROFILE</span><h2>${p.name}</h2><div class="provider-meta">${p.city} · ${p.area} · ${(p.specialties||[]).join(" / ")}</div><div class="detail-grid"><div><small>Doctor English</small><b>${human(p.doctorEnglish)}</b></div><div><small>Reception English</small><b>${human(p.receptionEnglish)}</b></div><div><small>Interpreter</small><b>${human(p.interpreter)}</b></div><div><small>Referral</small><b>${human(p.referral)}</b></div><div><small>Coordinator</small><b>${human(p.coordinator)}</b></div><div><small>Access Score</small><b>${sc.score}/100</b></div></div><h3>Access Score breakdown</h3>${breakdownMarkup(sc)}<p class="muted">The score summarizes international-access friction for the selected audience. It does not measure medical quality, outcomes or clinician skill.</p><h3>What drives this score?</h3><p class="muted">${sc.reasons.join(" · ")||"Not enough structured access data yet."}</p><h3>Cost visibility</h3><div class="detail-grid">${costs(p)}</div><h3>Expertise evidence</h3>${evidenceMarkup(p,constraints().q)}<p class="source-line">Source: ${p.source}<br>Last verified: ${p.verified}</p><button class="btn dark" onclick="closeProviderModal();openLeadModal('${p.id}')">Ask a coordinator</button>`;openModal($("providerModal"));};window.closeProviderModal=()=>closeModal($("providerModal"));
-function qualifyLeadForm(){if($("leadTimeframe"))return;const n=$("leadNotes")?.closest("label");if(n){const w=document.createElement("div");w.className="handoff-fields";w.innerHTML='<label>Timing<select id="leadTimeframe"><option value="flexible">Flexible / exploring</option><option value="within-2-weeks">Within 2 weeks</option><option value="within-1-month">Within 1 month</option><option value="within-3-months">Within 3 months</option><option value="urgent-access-question">Urgent access question</option></select></label><label>Preferred contact<select id="leadContactPreference"><option value="email">Email</option><option value="either">Email or messaging</option></select></label>';n.before(w);const note=document.createElement("p");note.className="handoff-note";note.textContent="Timing is for coordination logistics only; Japan Health does not provide medical triage.";w.after(note)}const t=$("leadConsent")?.nextElementSibling;if(t)t.textContent="I agree that Japan Health may share this inquiry with a Japan-based coordination partner, including AMECA when routed there, to respond to my coordination request. I understand this is not medical advice.";$("leadStatus")?.setAttribute("role","alert");$("leadStatus")?.setAttribute("aria-live","polite");}
-function updateLeadConstraintSummary(){let el=$("leadConstraintSummary");if(!el){el=document.createElement("p");el.id="leadConstraintSummary";el.className="constraint-summary";const form=$("leadForm");form?.insertBefore(el,form.firstChild)}el.textContent=`Current care-finder requirements: ${constraintText()}. These constraints will be included with the coordination inquiry.`;}
-window.openLeadModal=(id="")=>{qualifyLeadForm();updateLeadConstraintSummary();$("leadProvider").value=id;const p=providers.find(x=>x.id===id);if(p){$("leadNeed").value=(p.specialties||[]).join(" / ");$("leadCity").value=p.city==="Osaka"?"Osaka":"Tokyo"}openModal($("leadModal"));};window.closeLeadModal=()=>closeModal($("leadModal"));
-$("leadForm").onsubmit=async e=>{e.preventDefault();if(!$("leadConsent").checked){$("leadStatus").textContent="Please agree to partner sharing before sending this coordination inquiry.";$("leadConsent").focus();return}const p=providers.find(x=>x.id===$("leadProvider").value),btn=e.submitter||$("leadForm").querySelector('button[type="submit"]'),c=constraints(),payload={name:$("leadName").value.trim(),email:$("leadEmail").value.trim(),audience:$("leadAudience").value,city:$("leadCity").value,need:$("leadNeed").value.trim(),notes:$("leadNotes").value.trim(),timeframe:$("leadTimeframe")?.value||"flexible",contactPreference:$("leadContactPreference")?.value||"email",partnerConsent:true,providerId:p?.id||null,providerName:p?.name||null,providerContext:p?{provenance:"demo-unverified",evidence:normalizeEvidence(p).slice(0,12).map(x=>({type:x.type,label:x.label,status:x.status})),accessSnapshot:{score:accessScore(p,c).score,breakdown:accessScore(p,c).breakdown,priceTransparency:p.priceTransparency||"unknown"}}:null,sourcePage:location.pathname+location.search,partnerRoute:"ameca",accessConstraints:c,createdAt:new Date().toISOString()};$("leadStatus").textContent="Sending…";if(btn)btn.disabled=true;try{const r=await fetch("/api/lead",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});let j={};try{j=await r.json()}catch(_){}if(!r.ok)throw new Error(j.error||"Coordinator handoff is unavailable right now.");$("leadStatus").textContent=j.forwarded?`Inquiry sent. Reference: ${j.requestId||"confirmation available"}.`:"Demo inquiry accepted; no live partner was contacted.";if(j.forwarded)$("leadForm").reset()}catch(err){$("leadStatus").textContent=(err.message||"Coordinator handoff is unavailable right now.")+" Your form has been kept so you can retry."}finally{if(btn)btn.disabled=false}};
-function addMsg(t,c){const d=document.createElement("div");d.className="msg "+c;d.textContent=t;$("chatLog").appendChild(d);$("chatLog").scrollTop=$("chatLog").scrollHeight}function ask(t){addMsg(t,"user");const m=t.toLowerCase(),applied=[];if(/\b(live|living|resident)\b/.test(m)){$("audience").value="resident";applied.push("resident access")}if(/\b(visit|visiting|visitor|tourist)\b/.test(m)){$("audience").value="visitor";applied.push("visitor access")}if(m.includes("tokyo")){$("city").value="Tokyo";applied.push("Tokyo")}if(m.includes("osaka")){$("city").value="Osaka";applied.push("Osaka")}if(m.includes("interpreter")){$("language").value="interpreter";applied.push("interpreter-supported")}const topics=[["parkinson","Movement Disorders"],["cancer","Oncology"],["dent","Dentistry"],["ningen","Health Screening"],["second opinion","Second Opinion"]];for(const[x,y]of topics)if(m.includes(x)){$("q").value=y;applied.push(y);break}render();syncUrl();setTimeout(()=>addMsg(applied.length?`I applied: ${applied.join(" · ")}. This is navigation only, not diagnosis or treatment advice.`:"Tell me whether you live in Japan or are visiting, your city, care type, and whether an interpreter is acceptable.","bot"),120)}$("chatForm").onsubmit=e=>{e.preventDefault();const t=$("chatInput").value.trim();if(t){$("chatInput").value="";ask(t)}};document.querySelectorAll("[data-question]").forEach(b=>b.onclick=()=>ask(b.dataset.question));
-enhanceStyles();qualifyLeadForm();const initialSort=restoreUrl();ensureSort(initialSort);wireModal($("providerModal"),window.closeProviderModal);wireModal($("leadModal"),window.closeLeadModal);render();
+const providers=window.PROVIDERS||[],$=id=>document.getElementById(id);
+let lastTrigger=null;
+
+const human=v=>({
+  yes:"Yes",no:"No",partial:"Partial",limited:"Limited",available:"Available",
+  required:"Required",recommended:"Recommended",optional:"Optional",unknown:"Needs verification",
+  varies:"Varies by pathway",external:"External arrangement","self-pay":"Self-pay",
+  both:"Resident insurance + self-pay",resident:"Resident insurance",low:"Low",medium:"Medium",high:"High"
+}[v]||v);
+
+const evidenceTypeLabel={
+  disease_focus:"Disease focus",procedure:"Procedure",specialist_clinic:"Specialist clinic",
+  second_opinion:"Second opinion",service:"Service",research_focus:"Research focus",legacy:"Expertise evidence"
+};
+
+function normalizeEvidence(p){
+  return (p.expertiseEvidence||[]).map((e,i)=>typeof e==="string"
+    ?{type:"legacy",label:e,status:"demo",source:null,verified:null,id:`legacy-${i}`}
+    :{
+      type:e.type||"legacy",
+      label:e.label||e.name||"Untitled evidence",
+      status:e.evidenceStatus||e.status||"unverified",
+      source:e.sourceUrl||e.source||null,
+      verified:e.verifiedDate||e.verified||null,
+      id:e.id||`evidence-${i}`
+    });
+}
+
+function evidenceText(p){
+  return normalizeEvidence(p).map(e=>`${evidenceTypeLabel[e.type]||e.type}: ${e.label}`).join(" ");
+}
+
+function queryTokens(q){
+  return q.toLowerCase().split(/[^a-z0-9]+/).filter(x=>x.length>2);
+}
+
+function expertiseRelevance(p,q){
+  if(!q)return 0;
+  const needle=q.toLowerCase(),
+    specialties=(p.specialties||[]).join(" ").toLowerCase(),
+    evidence=evidenceText(p).toLowerCase(),
+    notes=(p.notes||"").toLowerCase();
+  let score=0;
+  if(specialties.includes(needle))score+=60;
+  if(evidence.includes(needle))score+=50;
+  if(notes.includes(needle))score+=15;
+  for(const t of queryTokens(q)){
+    if(specialties.includes(t))score+=12;
+    if(evidence.includes(t))score+=10;
+    if(notes.includes(t))score+=2;
+  }
+  return score;
+}
+
+function enhanceStyles(){
+  if($("jh-enhancement-styles"))return;
+  const s=document.createElement("style");
+  s.id="jh-enhancement-styles";
+  s.textContent=`.match-panel{display:grid;gap:8px;margin:12px 0;padding:11px;border-radius:11px;background:#f8fbfd;border:1px solid #e3ebf2}.signal-row,.evidence-row{display:flex;flex-wrap:wrap;gap:5px}.signal,.evidence-chip{padding:5px 7px;border-radius:99px;font-size:8px;font-weight:800}.signal.good{background:#e8f7f2;color:#217a64}.signal.friction{background:#fff2df;color:#8a5a18}.evidence-chip{background:#eef3f8;color:#42566a;text-decoration:none}.evidence-chip.verified-evidence{background:#e8f7f2;color:#217a64}.handoff-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}.handoff-note{font-size:9px;line-height:1.5;color:#667789;margin:-4px 0 12px}.modal-box:focus{outline:3px solid rgba(23,109,240,.28);outline-offset:3px}.lead-status[role=alert]{min-height:18px}.score-breakdown{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}.score-factor{padding:8px;border:1px solid #e3ebf2;border-radius:9px;background:#fff}.score-factor small,.score-factor b{display:block}.score-factor small{font-size:7px;color:#718295;letter-spacing:.04em}.score-factor b{font-size:10px;margin-top:3px}.score-factor span{display:block;font-size:7px;line-height:1.35;color:#7d8c9b;margin-top:3px}.constraint-summary{font-size:9px;line-height:1.5;color:#526579;padding:9px 10px;background:#f7fafc;border:1px solid #e3ebf2;border-radius:9px;margin:0 0 12px}.evidence-note{font-size:8px;line-height:1.45;color:#718295;margin:7px 0}.record-state{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;font-size:8px;font-weight:900;letter-spacing:.02em;margin:0 0 8px}.record-state.verified{background:#e8f7f2;color:#176b58;border:1px solid #c7e9df}.record-state.demo{background:#fff2df;color:#8a5a18;border:1px solid #f1d7ac}.source-link{font-weight:800}.published-cost{margin:10px 0;padding:9px 10px;border-radius:9px;border:1px solid #dfe7ef;background:#fbfcfe}.published-cost small,.published-cost strong,.published-cost span{display:block}.published-cost small{font-size:7px;letter-spacing:.05em;color:#718295}.published-cost strong{font-size:10px;margin-top:3px}.published-cost span{font-size:8px;line-height:1.45;color:#667789;margin-top:3px}.dataset-note{margin:10px 0 0;font-size:9px;color:#657789}@media(max-width:650px){.handoff-fields,.score-breakdown{grid-template-columns:1fr 1fr}.modal{align-items:end;padding:0}.modal-box{width:100%;max-height:92vh;border-radius:20px 20px 0 0}}`;
+  document.head.appendChild(s);
+}
+
+const constraints=()=>({
+  q:($("q").value||"").trim(),
+  audience:$("audience").value,
+  city:$("city").value,
+  language:$("language").value,
+  coordinator:$("coord").value,
+  referral:$("referral").value
+});
+
+function scoreBreakdown(p,c=constraints()){
+  const direct={yes:100,partial:70,limited:35}[p.doctorEnglish]||20,
+    interp=["yes","available"].includes(p.interpreter)?90:p.interpreter==="external"?45:25,
+    reception=p.receptionEnglish==="yes"?100:p.receptionEnglish==="partial"?65:30,
+    docs=p.englishDocs==="yes"?100:p.englishDocs==="partial"?65:30;
+  const communication=Math.round(direct*.45+interp*.30+reception*.15+docs*.10);
+  const booking=Math.max(0,Math.min(100,85-(p.referral==="required"?30:p.referral==="varies"?12:0)-(p.coordinator==="required"?25:p.coordinator==="recommended"?10:p.coordinator==="varies"?8:0)));
+  let eligibility=50+(p.selfPay==="yes"?20:0);
+  if(c.audience!=="all")eligibility+=(Array.isArray(p.audience)&&p.audience.includes(c.audience))?30:-35;
+  else eligibility+=Array.isArray(p.audience)&&p.audience.length>1?20:8;
+  eligibility=Math.max(0,Math.min(100,eligibility));
+  const cost=({high:100,medium:70,low:35}[p.priceTransparency]||25);
+  return{communication,booking,eligibility,cost};
+}
+
+function accessScore(p,c=constraints()){
+  const b=scoreBreakdown(p,c),
+    score=Math.round(b.communication*.4+b.booking*.25+b.eligibility*.2+b.cost*.15),
+    r=[];
+  if(p.doctorEnglish==="yes")r.push("doctor-level English");
+  else if(p.doctorEnglish==="partial")r.push("partial doctor English");
+  else if(p.doctorEnglish==="limited")r.push("limited doctor English");
+  if(["yes","available"].includes(p.interpreter))r.push("hospital interpreter pathway");
+  else if(p.interpreter==="external")r.push("external interpreter arrangement");
+  if(p.receptionEnglish==="yes")r.push("English reception");
+  if(c.audience!=="all"&&p.audience?.includes(c.audience))r.push(`${c.audience} pathway in this record`);
+  if(p.referral==="required")r.push("referral required");
+  else if(p.referral==="varies")r.push("referral rule varies by pathway");
+  if(p.coordinator==="required")r.push("coordinator required");
+  else if(p.coordinator==="varies")r.push("coordinator rule varies by pathway");
+  if(p.selfPay==="yes")r.push("self-pay pathway");
+  if((p.priceTransparency||"low")==="low")r.push("costs need verification");
+  return{score,reasons:r,breakdown:b};
+}
+
+const scoreLabel=n=>n>=80?"Lower access friction":n>=65?"Relatively lower friction":n>=50?"Moderate access friction":"Higher access friction";
+
+function constraintText(c=constraints()){
+  const parts=[];
+  if(c.audience!=="all")parts.push(c.audience==="visitor"?"Visitor":"Resident");
+  if(c.city!=="all")parts.push(c.city);
+  if(c.q)parts.push(c.q);
+  if(c.language==="direct")parts.push("Direct doctor English");
+  if(c.language==="interpreter")parts.push("Interpreter acceptable");
+  if(c.coordinator==="required")parts.push("Coordinator required");
+  if(c.coordinator==="not-required")parts.push("No required coordinator");
+  if(c.referral==="required")parts.push("Referral required");
+  if(c.referral==="no")parts.push("No referral required");
+  return parts.length?parts.join(" · "):"No care-finder constraints selected";
+}
+
+function syncUrl(){
+  const c=constraints(),params=new URLSearchParams();
+  Object.entries(c).forEach(([k,v])=>{if(v&&v!=="all")params.set(k,v)});
+  const sort=$("sort")?.value||"fit";
+  if(sort!=="fit")params.set("sort",sort);
+  history.replaceState(null,"",`${location.pathname}${params.size?`?${params}`:""}${location.hash}`);
+}
+
+function restoreUrl(){
+  const p=new URLSearchParams(location.search);
+  if(p.has("q"))$("q").value=p.get("q");
+  for(const id of ["audience","city","language","coord","referral"]){
+    const key=id==="coord"?"coordinator":id;
+    if(p.has(key)&&[...$(id).options].some(o=>o.value===p.get(key)))$(id).value=p.get(key);
+  }
+  return p.get("sort")||"fit";
+}
+
+function breakdownMarkup(sc){
+  const items=[
+    ["Communication",sc.breakdown.communication,"Doctor / interpreter / reception / documents"],
+    ["Booking",sc.breakdown.booking,"Referral and coordinator friction"],
+    ["Eligibility",sc.breakdown.eligibility,"Selected audience + self-pay pathway"],
+    ["Cost data",sc.breakdown.cost,"Transparency only, not affordability"]
+  ];
+  return `<div class="score-breakdown">${items.map(([k,v,d])=>`<div class="score-factor"><small>${k.toUpperCase()}</small><b>${v}/100</b><span>${d}</span></div>`).join("")}</div>`;
+}
+
+function verificationBadge(p){
+  return p.recordStatus==="official-source-verified"
+    ?`<span class="record-state verified">OFFICIAL SOURCE CHECKED · ${p.verified}</span>`
+    :`<span class="record-state demo">DEMO · UNVERIFIED</span>`;
+}
+
+function sourceMarkup(p){
+  if(p.recordStatus==="official-source-verified"&&/^https:\/\//i.test(p.source||"")){
+    return `<div class="source-line">Official source: <a class="source-link" href="${p.source}" target="_blank" rel="noopener noreferrer">open source ↗</a> · Checked ${p.verified}</div>`;
+  }
+  return `<div class="source-line">Source: ${p.source} · Last verified: ${p.verified}</div>`;
+}
+
+function badges(p){
+  let a=[];
+  if(p.doctorEnglish==="yes")a.push('<span class="badge">Doctor English</span>');
+  else if(["partial","limited"].includes(p.doctorEnglish))a.push(`<span class="badge gray">Doctor English: ${human(p.doctorEnglish)}</span>`);
+  if(["yes","available"].includes(p.interpreter))a.push('<span class="badge green">Hospital interpreter</span>');
+  else if(p.interpreter==="external")a.push('<span class="badge gray">External interpreter</span>');
+  if(["required","recommended"].includes(p.coordinator))a.push(`<span class="badge purple">Coordinator ${human(p.coordinator)}</span>`);
+  return a.join("");
+}
+
+const costs=p=>[
+  ["Medical",p.medicalCost||"Unknown"],
+  ["Interpreter",p.interpreterCost||"Unknown"],
+  ["Coordinator",p.coordinatorCost||"Unknown"]
+].map(([k,v])=>`<div><small>${k.toUpperCase()}</small><b>${v}</b></div>`).join("");
+
+function publishedCostMarkup(p){
+  const rows=Array.isArray(p.publishedCosts)?p.publishedCosts:[];
+  if(!rows.length)return"";
+  return rows.map(x=>`<div class="published-cost"><small>PUBLISHED SERVICE FEE · CHECKED ${x.verifiedDate}</small><strong>${x.label}: ${x.amount}</strong><span>${x.scope||""}</span><span><a href="${x.sourceUrl}" target="_blank" rel="noopener noreferrer">Official fee source ↗</a></span></div>`).join("");
+}
+
+function evidenceMarkup(p,q=""){
+  const e=normalizeEvidence(p),rel=expertiseRelevance(p,q);
+  const chips=e.map(x=>{
+    const label=`${evidenceTypeLabel[x.type]||x.type}: ${x.label}`;
+    return x.status==="official-source-verified"&&x.source
+      ?`<a class="evidence-chip verified-evidence" href="${x.source}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`
+      :`<span class="evidence-chip">${label}</span>`;
+  }).join("")||'<span class="evidence-chip">No evidence added</span>';
+  return `<div class="evidence-row">${chips}</div>${q?`<p class="evidence-note">Search-evidence relevance: ${rel}. Used only to match the words you searched; it is not a clinical-quality score.</p>`:""}`;
+}
+
+function signals(p){
+  const c=constraints(),m=[],f=[];
+  if(c.audience!=="all"&&p.audience.includes(c.audience))m.push(c.audience==="visitor"?"Visitor access":"Resident access");
+  if(c.city!=="all"&&p.city===c.city)m.push(c.city);
+  if(c.language==="direct"&&p.doctorEnglish==="yes")m.push("Direct doctor English");
+  if(c.language==="interpreter"&&["yes","available"].includes(p.interpreter))m.push("Hospital interpreter available");
+  if(c.language==="interpreter"&&p.interpreter==="external")m.push("External interpreter pathway");
+  if(c.referral==="no"&&p.referral==="no")m.push("No referral required");
+  if(c.q&&expertiseRelevance(p,c.q)>0)m.push("Search terms found in specialty/evidence");
+  if(p.referral==="required")f.push("Referral required");
+  if(p.referral==="varies")f.push("Referral varies by pathway");
+  if(p.coordinator==="required")f.push("Coordinator required");
+  if(p.coordinator==="varies")f.push("Coordinator varies by pathway");
+  if((p.priceTransparency||"low")==="low")f.push("Costs need verification");
+  return{m:m.length?m:["Potential pathway"],f};
+}
+
+function ensureSort(defaultSort="fit"){
+  if($("sort"))return;
+  const s=document.createElement("select");
+  s.id="sort";
+  s.setAttribute("aria-label","Sort care options");
+  s.innerHTML='<option value="fit">Best access fit</option><option value="relevance">Search evidence relevance</option><option value="name">Name A–Z</option>';
+  document.querySelector(".filters")?.appendChild(s);
+  if([...s.options].some(o=>o.value===defaultSort))s.value=defaultSort;
+  s.oninput=()=>{render();syncUrl()};
+}
+
+function render(){
+  const c=constraints(),q=c.q.toLowerCase();
+  let a=providers.filter(p=>{
+    const h=(p.name+" "+p.city+" "+p.area+" "+(p.specialties||[]).join(" ")+" "+(p.notes||"")+" "+evidenceText(p)).toLowerCase();
+    return(!q||h.includes(q)||expertiseRelevance(p,q)>0)
+      &&(c.audience==="all"||p.audience.includes(c.audience))
+      &&(c.city==="all"||p.city===c.city)
+      &&(c.language==="all"||(c.language==="direct"&&p.doctorEnglish==="yes")||(c.language==="interpreter"&&["yes","available","external"].includes(p.interpreter)))
+      &&(c.coordinator==="all"||(c.coordinator==="required"&&p.coordinator==="required")||(c.coordinator==="not-required"&&p.coordinator!=="required"))
+      &&(c.referral==="all"||(c.referral==="required"&&p.referral==="required")||(c.referral==="no"&&p.referral==="no"));
+  });
+  const sort=$("sort")?.value||"fit";
+  a.sort((x,y)=>sort==="name"
+    ?x.name.localeCompare(y.name)
+    :sort==="relevance"
+      ?expertiseRelevance(y,c.q)-expertiseRelevance(x,c.q)
+      :(expertiseRelevance(y,c.q)-expertiseRelevance(x,c.q))*2+accessScore(y,c).score-accessScore(x,c).score);
+  const verifiedCount=a.filter(p=>p.recordStatus==="official-source-verified").length;
+  $("resultCount").textContent=`${a.length} options · ${verifiedCount} official-source checked`;
+  if(!a.length){
+    $("providerGrid").innerHTML='<div class="empty-state"><h3>No match for these constraints.</h3><p>Japan Health preserves your requirements instead of silently relaxing them.</p><button class="small-btn primary" onclick="openLeadModal()">Ask a coordinator</button></div>';
+    return;
+  }
+  $("providerGrid").innerHTML=a.map(p=>{
+    const sc=accessScore(p,c),sg=signals(p);
+    return`<article class="provider-card">${verificationBadge(p)}<h3>${p.name}</h3><div class="provider-meta">${p.city} · ${p.area} · ${(p.specialties||[]).join(" / ")}</div><div class="badge-row">${badges(p)}</div><div class="match-panel"><small>WHY IT MATCHES</small><div class="signal-row">${sg.m.map(x=>`<span class="signal good">${x}</span>`).join("")}</div>${sg.f.length?`<small>ACCESS FRICTION</small><div class="signal-row">${sg.f.map(x=>`<span class="signal friction">${x}</span>`).join("")}</div>`:""}</div>${c.q?evidenceMarkup(p,c.q):""}<p>${p.notes}</p><div class="score-row"><div class="score-ring"><b>${sc.score}</b><small>/100</small></div><div><strong>${scoreLabel(sc.score)}</strong><span>International access friction only — not clinical quality</span></div></div>${breakdownMarkup(sc)}<div class="provider-gridline"><div><small>REFERRAL</small><b>${human(p.referral)}</b></div><div><small>SELF-PAY</small><b>${human(p.selfPay)}</b></div><div><small>COORDINATOR</small><b>${human(p.coordinator)}</b></div><div><small>PRICE DATA</small><b>${human(p.priceTransparency)}</b></div></div><div class="cost-grid">${costs(p)}</div>${publishedCostMarkup(p)}<div class="provider-actions"><button class="small-btn" onclick="openProvider('${p.id}')">View access details</button><button class="small-btn primary" onclick="openLeadModal('${p.id}')">Ask a coordinator</button></div>${sourceMarkup(p)}</article>`;
+  }).join("");
+}
+
+["q","audience","city","language","coord","referral"].forEach(id=>$(id).oninput=()=>{render();syncUrl()});
+$("resetFilters").onclick=()=>{
+  $("q").value="";
+  ["audience","city","language","coord","referral"].forEach(id=>$(id).value="all");
+  if($("sort"))$("sort").value="fit";
+  render();syncUrl();
+};
+document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{
+  $("q").value=b.dataset.preset;
+  location.hash="find";
+  render();syncUrl();
+});
+
+function focusables(m){
+  return[...m.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(x=>!x.disabled&&!x.hidden);
+}
+function openModal(m){
+  lastTrigger=document.activeElement;
+  m.classList.remove("hidden");
+  m.setAttribute("role","dialog");
+  m.setAttribute("aria-modal","true");
+  const box=m.querySelector(".modal-box");
+  box?.setAttribute("tabindex","-1");
+  box?.focus();
+  document.body.style.overflow="hidden";
+}
+function closeModal(m){
+  m.classList.add("hidden");
+  document.body.style.overflow="";
+  lastTrigger?.focus?.();
+  lastTrigger=null;
+}
+function wireModal(m,close){
+  m?.addEventListener("mousedown",e=>{if(e.target===m)close()});
+  m?.addEventListener("keydown",e=>{
+    if(e.key==="Escape"){e.preventDefault();close();return}
+    if(e.key!=="Tab")return;
+    const f=focusables(m);
+    if(!f.length)return;
+    if(e.shiftKey&&document.activeElement===f[0]){e.preventDefault();f.at(-1).focus()}
+    else if(!e.shiftKey&&document.activeElement===f.at(-1)){e.preventDefault();f[0].focus()}
+  });
+}
+
+window.openProvider=id=>{
+  const p=providers.find(x=>x.id===id);
+  if(!p)return;
+  const sc=accessScore(p);
+  $("providerDetail").innerHTML=`${verificationBadge(p)}<span class="mini">ACCESS PROFILE</span><h2>${p.name}</h2><div class="provider-meta">${p.city} · ${p.area} · ${(p.specialties||[]).join(" / ")}</div><div class="detail-grid"><div><small>Doctor English</small><b>${human(p.doctorEnglish)}</b></div><div><small>Reception English</small><b>${human(p.receptionEnglish)}</b></div><div><small>Interpreter</small><b>${human(p.interpreter)}</b></div><div><small>Referral</small><b>${human(p.referral)}</b></div><div><small>Coordinator</small><b>${human(p.coordinator)}</b></div><div><small>Access Score</small><b>${sc.score}/100</b></div></div><h3>Access Score breakdown</h3>${breakdownMarkup(sc)}<p class="muted">The score summarizes international-access friction for the selected audience. It does not measure medical quality, outcomes or clinician skill.</p><h3>What drives this score?</h3><p class="muted">${sc.reasons.join(" · ")||"Not enough structured access data yet."}</p><h3>Cost visibility</h3><div class="detail-grid">${costs(p)}</div>${publishedCostMarkup(p)}<h3>Expertise evidence</h3>${evidenceMarkup(p,constraints().q)}${sourceMarkup(p)}<button class="btn dark" onclick="closeProviderModal();openLeadModal('${p.id}')">Ask a coordinator</button>`;
+  openModal($("providerModal"));
+};
+window.closeProviderModal=()=>closeModal($("providerModal"));
+
+function qualifyLeadForm(){
+  if($("leadTimeframe"))return;
+  const n=$("leadNotes")?.closest("label");
+  if(n){
+    const w=document.createElement("div");
+    w.className="handoff-fields";
+    w.innerHTML='<label>Timing<select id="leadTimeframe"><option value="flexible">Flexible / exploring</option><option value="within-2-weeks">Within 2 weeks</option><option value="within-1-month">Within 1 month</option><option value="within-3-months">Within 3 months</option><option value="urgent-access-question">Urgent access question</option></select></label><label>Preferred contact<select id="leadContactPreference"><option value="email">Email</option><option value="either">Email or messaging</option></select></label>';
+    n.before(w);
+    const note=document.createElement("p");
+    note.className="handoff-note";
+    note.textContent="Timing is for coordination logistics only; Japan Health does not provide medical triage.";
+    w.after(note);
+  }
+  const t=$("leadConsent")?.nextElementSibling;
+  if(t)t.textContent="I agree that Japan Health may share this inquiry with a Japan-based coordination partner, including AMECA when routed there, to respond to my coordination request. I understand this is not medical advice.";
+  $("leadStatus")?.setAttribute("role","alert");
+  $("leadStatus")?.setAttribute("aria-live","polite");
+}
+
+function updateLeadConstraintSummary(){
+  let el=$("leadConstraintSummary");
+  if(!el){
+    el=document.createElement("p");
+    el.id="leadConstraintSummary";
+    el.className="constraint-summary";
+    const form=$("leadForm");
+    form?.insertBefore(el,form.firstChild);
+  }
+  el.textContent=`Current care-finder requirements: ${constraintText()}. These constraints will be included with the coordination inquiry.`;
+}
+
+window.openLeadModal=(id="")=>{
+  qualifyLeadForm();
+  updateLeadConstraintSummary();
+  $("leadProvider").value=id;
+  const p=providers.find(x=>x.id===id);
+  if(p){
+    $("leadNeed").value=(p.specialties||[]).join(" / ");
+    $("leadCity").value=p.city==="Osaka"?"Osaka":"Tokyo";
+  }
+  openModal($("leadModal"));
+};
+window.closeLeadModal=()=>closeModal($("leadModal"));
+
+$("leadForm").onsubmit=async e=>{
+  e.preventDefault();
+  if(!$("leadConsent").checked){
+    $("leadStatus").textContent="Please agree to partner sharing before sending this coordination inquiry.";
+    $("leadConsent").focus();
+    return;
+  }
+  const p=providers.find(x=>x.id===$("leadProvider").value),
+    btn=e.submitter||$("leadForm").querySelector('button[type="submit"]'),
+    c=constraints(),
+    payload={
+      name:$("leadName").value.trim(),
+      email:$("leadEmail").value.trim(),
+      audience:$("leadAudience").value,
+      city:$("leadCity").value,
+      need:$("leadNeed").value.trim(),
+      notes:$("leadNotes").value.trim(),
+      timeframe:$("leadTimeframe")?.value||"flexible",
+      contactPreference:$("leadContactPreference")?.value||"email",
+      partnerConsent:true,
+      providerId:p?.id||null,
+      providerName:p?.name||null,
+      providerContext:p?{
+        provenance:p.recordStatus==="official-source-verified"?"official-source-checked":"demo-unverified",
+        evidence:normalizeEvidence(p).slice(0,12).map(x=>({type:x.type,label:x.label,status:x.status})),
+        accessSnapshot:{score:accessScore(p,c).score,breakdown:accessScore(p,c).breakdown,priceTransparency:p.priceTransparency||"unknown"}
+      }:null,
+      sourcePage:location.pathname+location.search,
+      partnerRoute:"ameca",
+      accessConstraints:c,
+      createdAt:new Date().toISOString()
+    };
+  $("leadStatus").textContent="Sending…";
+  if(btn)btn.disabled=true;
+  try{
+    const r=await fetch("/api/lead",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    let j={};
+    try{j=await r.json()}catch(_){}
+    if(!r.ok)throw new Error(j.error||"Coordinator handoff is unavailable right now.");
+    $("leadStatus").textContent=j.forwarded?`Inquiry sent. Reference: ${j.requestId||"confirmation available"}.`:"Demo inquiry accepted; no live partner was contacted.";
+    if(j.forwarded)$("leadForm").reset();
+  }catch(err){
+    $("leadStatus").textContent=(err.message||"Coordinator handoff is unavailable right now.")+" Your form has been kept so you can retry.";
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+};
+
+function addMsg(t,c){
+  const d=document.createElement("div");
+  d.className="msg "+c;
+  d.textContent=t;
+  $("chatLog").appendChild(d);
+  $("chatLog").scrollTop=$("chatLog").scrollHeight;
+}
+function ask(t){
+  addMsg(t,"user");
+  const m=t.toLowerCase(),applied=[];
+  if(/\b(live|living|resident)\b/.test(m)){$("audience").value="resident";applied.push("resident access")}
+  if(/\b(visit|visiting|visitor|tourist)\b/.test(m)){$("audience").value="visitor";applied.push("visitor access")}
+  if(m.includes("tokyo")){$("city").value="Tokyo";applied.push("Tokyo")}
+  if(m.includes("osaka")){$("city").value="Osaka";applied.push("Osaka")}
+  if(m.includes("interpreter")){$("language").value="interpreter";applied.push("interpreter-supported")}
+  const topics=[
+    ["parkinson","Parkinson's Disease"],["dbs","Deep brain stimulation"],["cancer","Oncology"],
+    ["dent","Dentistry"],["ningen","Health Screening"],["second opinion","Second Opinion"]
+  ];
+  for(const[x,y]of topics)if(m.includes(x)){$("q").value=y;applied.push(y);break}
+  render();syncUrl();
+  setTimeout(()=>addMsg(applied.length
+    ?`I applied: ${applied.join(" · ")}. This is navigation only, not diagnosis or treatment advice.`
+    :"Tell me whether you live in Japan or are visiting, your city, care type, and whether an interpreter is acceptable.","bot"),120);
+}
+$("chatForm").onsubmit=e=>{
+  e.preventDefault();
+  const t=$("chatInput").value.trim();
+  if(t){$("chatInput").value="";ask(t)}
+};
+document.querySelectorAll("[data-question]").forEach(b=>b.onclick=()=>ask(b.dataset.question));
+
+enhanceStyles();
+qualifyLeadForm();
+const initialSort=restoreUrl();
+ensureSort(initialSort);
+wireModal($("providerModal"),window.closeProviderModal);
+wireModal($("leadModal"),window.closeLeadModal);
+render();

@@ -4,11 +4,11 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Japan Health | Find the Right Care in Japan</title>
-<meta name="description" content="Compare healthcare access in Japan by specialty, English support, interpreter availability, insurance, referrals and international-patient pathways."/>
+<meta name="description" content="Compare healthcare access in Japan by specialty, disease or procedure focus, interpreter pathways, insurance, referrals and international-patient access rules."/>
 <link rel="stylesheet" href="/styles.css"/>
 </head>
 <body>
-<div class="prototype">VALIDATION MVP — provider records are illustrative until officially verified</div>
+<div class="prototype">VALIDATION MVP — official-source checked records are labeled; demo records remain illustrative and unverified</div>
 
 <header class="nav">
   <a class="brand" href="#top"><span class="mark">J</span><span><b>Japan Health</b><small>Healthcare access for international patients</small></span></a>
@@ -44,11 +44,11 @@
     <span class="mini">THE KEY QUESTION</span>
     <h2>“Can I actually use this hospital?”</h2>
     <p>A normal directory tells you a hospital exists. Japan Health is designed to tell international patients how access actually works.</p>
-    <div class="access-row"><b>Doctor English</b><span class="yes">Yes / Partial / Limited</span></div>
-    <div class="access-row"><b>Interpreter</b><span class="yes">Available</span></div>
-    <div class="access-row"><b>Visitors accepted</b><span class="yes">Yes / Verify</span></div>
-    <div class="access-row"><b>Referral</b><span class="warn">Required / Not required</span></div>
-    <div class="access-row"><b>Coordinator</b><span class="purple">Direct / Recommended / Required</span></div>
+    <div class="access-row"><b>Doctor English</b><span class="yes">Yes / Partial / Verify</span></div>
+    <div class="access-row"><b>Interpreter</b><span class="yes">Hospital / External / Verify</span></div>
+    <div class="access-row"><b>Visitors accepted</b><span class="yes">Pathway / Verify</span></div>
+    <div class="access-row"><b>Referral</b><span class="warn">Required / Varies / Not required</span></div>
+    <div class="access-row"><b>Coordinator</b><span class="purple">Direct / Varies / Required</span></div>
   </aside>
 </section>
 
@@ -65,7 +65,7 @@
     <span class="eyebrow">I'M VISITING JAPAN</span>
     <h2>Visitor & Planned Care</h2>
     <p>Health screening, dental, aesthetic care, specialist review and other services where self-pay and coordination matter.</p>
-    <div class="chips"><button data-preset="Health Screening">Health Screening</button><button data-preset="Cosmetic Surgery">Cosmetic Surgery</button><button data-preset="Dentistry">Dental</button><button data-preset="Second Opinion">Second Opinion</button></div>
+    <div class="chips"><button data-preset="Health Screening">Health Screening</button><button data-preset="Parkinson's Disease">Parkinson's</button><button data-preset="Deep brain stimulation">DBS evidence</button><button data-preset="Second Opinion">Second Opinion</button></div>
     <a href="#find">Browse visitor care →</a>
   </div>
 </section>
@@ -79,11 +79,11 @@
 
   <div class="feature-grid">
     <article><span>01</span><h3>Direct English vs interpretation</h3><p>Separate physician-level English from reception English and professional medical interpretation.</p></article>
-    <article><span>02</span><h3>Specialty depth</h3><p>Surface highly specialized care even when the best route requires an interpreter or coordinator.</p></article>
+    <article><span>02</span><h3>Disease & procedure evidence</h3><p>Show typed official-source evidence for disease focus, procedures, specialist clinics and second-opinion pathways without ranking clinical quality.</p></article>
     <article><span>03</span><h3>Access rules</h3><p>Show visitor eligibility, referral requirements, self-pay status and coordinator requirements before the user wastes time.</p></article>
-    <article><span>04</span><h3>Source + verification</h3><p>Every production listing should show an official source and last-verified date instead of silently becoming stale.</p></article>
-    <article><span>05</span><h3>Transparent Access Score</h3><p>A rule-based score explains how easy the international access path is — without pretending to rank medical quality.</p></article>
-    <article><span>06</span><h3>Total-cost visibility</h3><p>Separate medical fees, interpreter fees and coordinator fees so users can see what is known and what still needs verification.</p></article>
+    <article><span>04</span><h3>Source + verification</h3><p>Official-source checked records expose their source and check date. Unknown fields stay unknown instead of being guessed.</p></article>
+    <article><span>05</span><h3>Transparent Access Score</h3><p>A rule-based score explains international access friction — without pretending to rank medical quality.</p></article>
+    <article><span>06</span><h3>Total-cost visibility</h3><p>Separate medical, interpreter and coordinator costs, and show published service fees only when an official source supports them.</p></article>
   </div>
 </section>
 
@@ -92,21 +92,21 @@
     <div>
       <div class="eyebrow dark">CARE FINDER</div>
       <h2>Search by what actually matters.</h2>
-      <p>Current provider cards are UX examples only. Replace them with verified official records before launch.</p>
+      <p>Official-source checked records are mixed with clearly labeled demo records. “Checked” means the cited source supported the displayed access fact on the check date; it does not guarantee current acceptance, availability or clinical quality.</p>
     </div>
     <button id="resetFilters" class="text-btn">Reset filters</button>
   </div>
 
   <div class="filters">
-    <input id="q" placeholder="Search specialty, provider or area"/>
+    <input id="q" aria-label="Search care evidence" placeholder="Search disease, procedure, specialty, provider or area"/>
     <select id="audience"><option value="all">Resident + Visitor</option><option value="resident">Residents</option><option value="visitor">Visitors</option></select>
     <select id="city"><option value="all">All cities</option><option>Tokyo</option><option>Osaka</option></select>
-    <select id="language"><option value="all">Any language pathway</option><option value="direct">Direct English doctor</option><option value="interpreter">Interpreter supported</option></select>
-    <select id="coord"><option value="all">Any booking path</option><option value="required">Coordinator required</option><option value="not-required">Direct / no coordinator required</option></select>
+    <select id="language"><option value="all">Any language pathway</option><option value="direct">Direct English doctor</option><option value="interpreter">Interpreter supported / external</option></select>
+    <select id="coord"><option value="all">Any booking path</option><option value="required">Coordinator required</option><option value="not-required">No confirmed coordinator requirement</option></select>
     <select id="referral"><option value="all">Any referral rule</option><option value="required">Referral required</option><option value="no">No referral required</option></select>
   </div>
 
-  <div class="results-bar"><b id="resultCount">0 options</b><span>Compare access, not just language.</span></div>
+  <div class="results-bar"><b id="resultCount">0 options</b><span>Compare access evidence, not clinical quality.</span></div>
   <div id="providerGrid" class="provider-grid"></div>
 </section>
 
@@ -121,10 +121,10 @@
     <div id="chatLog" class="chat-log"><div class="msg bot">Tell me whether you live in Japan or are visiting, your city, and what kind of care you're looking for.</div></div>
     <div class="quick">
       <button data-question="I live in Tokyo and need an English-speaking dentist">Resident dentist</button>
-      <button data-question="I'm visiting Tokyo and want a Ningen Dock health screening">Ningen Dock</button>
-      <button data-question="I have Parkinson's disease and want a specialist second opinion in Japan">Specialist second opinion</button>
+      <button data-question="I'm visiting Tokyo and need an interpreter-supported hospital">Interpreter pathway</button>
+      <button data-question="I have Parkinson's disease and want to understand specialist access in Japan">Parkinson's access</button>
     </div>
-    <form id="chatForm" class="chat-form"><input id="chatInput" placeholder="e.g. I'm visiting Japan and need a neurology second opinion"/><button>Ask</button></form>
+    <form id="chatForm" class="chat-form"><input id="chatInput" aria-label="Describe your access need" placeholder="e.g. I'm visiting Japan and need a neurology second opinion"/><button>Ask</button></form>
   </div>
 </section>
 
@@ -145,20 +145,20 @@
 
 <div class="modal hidden" id="providerModal">
   <div class="modal-box">
-    <button class="close" onclick="closeProviderModal()">×</button>
+    <button class="close" aria-label="Close provider details" onclick="closeProviderModal()">×</button>
     <div id="providerDetail"></div>
   </div>
 </div>
 
 <div class="modal hidden" id="leadModal">
   <div class="modal-box lead-box">
-    <button class="close" onclick="closeLeadModal()">×</button>
+    <button class="close" aria-label="Close coordinator form" onclick="closeLeadModal()">×</button>
     <span class="mini">COORDINATOR HANDOFF</span>
     <h2>Tell us what you're looking for.</h2>
     <p class="muted">We’ll package the inquiry for a Japan-based coordination partner. This is not medical advice.</p>
     <form id="leadForm">
       <input id="leadProvider" type="hidden"/>
-      <div class="grid2"><label>Name<input id="leadName" required/></label><label>Email<input id="leadEmail" type="email" required/></label></div>
+      <div class="grid2"><label>Name<input id="leadName" autocomplete="name" required/></label><label>Email<input id="leadEmail" type="email" autocomplete="email" required/></label></div>
       <div class="grid2"><label>I am<select id="leadAudience"><option value="visitor">Visiting Japan</option><option value="resident">Living in Japan</option></select></label><label>City<select id="leadCity"><option>Tokyo</option><option>Osaka</option><option>Other / flexible</option></select></label></div>
       <label>What kind of care?<input id="leadNeed" placeholder="e.g. Health screening, neurology second opinion"/></label>
       <label>Additional context<textarea id="leadNotes" placeholder="Relevant logistics or what you want help arranging. Avoid sending unnecessary sensitive health data in this demo."></textarea></label>
@@ -169,6 +169,6 @@
   </div>
 </div>
 
-<script>window.PROVIDERS = [{"id": "demo-neuro-center", "name": "Demo Advanced Neuro Center", "city": "Tokyo", "area": "Bunkyo", "audience": ["visitor", "resident"], "specialties": ["Neurology", "Movement Disorders", "Second Opinion"], "doctorEnglish": "limited", "receptionEnglish": "yes", "interpreter": "yes", "englishDocs": "partial", "coordinator": "required", "insurance": "resident", "selfPay": "yes", "referral": "required", "access": "Moderate", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative example of a highly specialized center that may be more accessible through interpretation than direct English.", "expertiseEvidence": ["Movement-disorder focus (demo)", "Second-opinion pathway (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-international-clinic", "name": "Demo International Clinic", "city": "Tokyo", "area": "Shibuya", "audience": ["visitor", "resident"], "specialties": ["Internal Medicine", "General Practice"], "doctorEnglish": "yes", "receptionEnglish": "yes", "interpreter": "no", "englishDocs": "yes", "coordinator": "no", "insurance": "both", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative direct-English clinic profile for everyday care.", "expertiseEvidence": ["General internal medicine access (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-womens-health", "name": "Demo Women's Health Clinic", "city": "Tokyo", "area": "Minato", "audience": ["resident"], "specialties": ["OB-GYN", "Women's Health"], "doctorEnglish": "yes", "receptionEnglish": "yes", "interpreter": "available", "englishDocs": "partial", "coordinator": "no", "insurance": "resident", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative resident-focused OB-GYN profile.", "expertiseEvidence": ["Women's health / gynecology focus (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-dental-center", "name": "Demo Dental Center", "city": "Tokyo", "area": "Shinjuku", "audience": ["visitor", "resident"], "specialties": ["Dentistry", "Emergency Dental"], "doctorEnglish": "yes", "receptionEnglish": "yes", "interpreter": "no", "englishDocs": "partial", "coordinator": "no", "insurance": "both", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative dental profile showing resident and visitor use.", "expertiseEvidence": ["General dentistry + emergency dental access (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-checkup-center", "name": "Demo Executive Checkup Center", "city": "Tokyo", "area": "Chiyoda", "audience": ["visitor", "resident"], "specialties": ["Health Screening", "Ningen Dock", "Imaging"], "doctorEnglish": "partial", "receptionEnglish": "yes", "interpreter": "yes", "englishDocs": "yes", "coordinator": "recommended", "insurance": "self-pay", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative planned-care listing for health screening.", "expertiseEvidence": ["Ningen Dock / imaging pathway (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-cancer-center", "name": "Demo Oncology Referral Center", "city": "Tokyo", "area": "Chuo", "audience": ["visitor"], "specialties": ["Oncology", "Second Opinion", "Cancer Care"], "doctorEnglish": "limited", "receptionEnglish": "partial", "interpreter": "yes", "englishDocs": "partial", "coordinator": "required", "insurance": "self-pay", "selfPay": "yes", "referral": "required", "access": "Complex", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative specialist referral pathway where coordinator and record triage matter.", "expertiseEvidence": ["Oncology second-opinion pathway (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-cosmetic", "name": "Demo Aesthetic Surgery Clinic", "city": "Tokyo", "area": "Ginza", "audience": ["visitor"], "specialties": ["Cosmetic Surgery", "Aesthetic Medicine"], "doctorEnglish": "partial", "receptionEnglish": "yes", "interpreter": "available", "englishDocs": "yes", "coordinator": "optional", "insurance": "self-pay", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative planned aesthetic-care listing.", "expertiseEvidence": ["Aesthetic medicine pathway (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-osaka-general", "name": "Demo Osaka International Medical Clinic", "city": "Osaka", "area": "Kita", "audience": ["visitor", "resident"], "specialties": ["Internal Medicine", "General Practice", "Dermatology"], "doctorEnglish": "yes", "receptionEnglish": "yes", "interpreter": "available", "englishDocs": "partial", "coordinator": "no", "insurance": "both", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative Osaka listing for geographic expansion.", "expertiseEvidence": ["General medicine + dermatology access (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}];</script>
+<script src="/data/providers.js"></script>
 <script src="/app.js"></script>
 </body></html>

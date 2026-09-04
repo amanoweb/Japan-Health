@@ -18,6 +18,7 @@ jobs:
         run: |
           node --check app.js
           node --check api/lead.js
+          node --check data/providers.js
           node --check scripts/validate-provider-data.js
           node --check scripts/validate-lead-contract.js
           node --check scripts/validate-expertise-contract.js
@@ -31,6 +32,7 @@ jobs:
       - name: Verify production invariants
         run: |
           grep -Fq '<link rel="stylesheet" href="/styles.css"' index.html
+          grep -Fq '<script src="/data/providers.js"></script>' index.html
           grep -Fq '<script src="/app.js"></script>' index.html
           grep -Fq 'fetch("/api/lead"' app.js
           grep -Fq 'VALIDATION MVP' index.html
