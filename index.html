@@ -1,282 +1,174 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <meta name="description" content="日本のMedTech / Digital Health企業向け FDA Readiness Checker"/>
-  <title>FDA Readiness AI | Japan → US MedTech</title>
-  <link rel="stylesheet" href="/styles.css"/>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Japan Health | Find the Right Care in Japan</title>
+<meta name="description" content="Compare healthcare access in Japan by specialty, English support, interpreter availability, insurance, referrals and international-patient pathways."/>
+<link rel="stylesheet" href="/styles.css"/>
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark">F</div>
-        <div>
-          <div class="brand-name">FDA Readiness AI</div>
-          <div class="brand-sub">Japan → US MedTech Intelligence</div>
-        </div>
-      </div>
-      <div class="top-actions">
-        <span class="pill">MVP</span>
-        <button class="ghost" id="demoBtn">サンプル入力</button>
-      </div>
-    </header>
+<div class="prototype">VALIDATION MVP — provider records are illustrative until officially verified</div>
 
-    <section class="hero">
-      <div class="hero-copy">
-        <div class="eyebrow">FOR JAPANESE MEDTECH & DIGITAL HEALTH</div>
-        <h1>米国進出前に、<br><span>FDAの「何が足りないか」</span>を見える化。</h1>
-        <p>製品情報を入力すると、公開FDAデータから類似分類・510(k)候補・PMA情報を検索し、想定規制経路とEvidence Gapを整理します。</p>
-        <div class="hero-badges">
-          <span>FDA Classification</span>
-          <span>510(k) Candidates</span>
-          <span>PMA Signals</span>
-          <span>Evidence Gaps</span>
-        </div>
-      </div>
-      <div class="hero-panel">
-        <div class="mini-title">このMVPでできること</div>
-        <div class="mini-row"><b>01</b><span>製品概要からFDA検索キーワードを生成</span></div>
-        <div class="mini-row"><b>02</b><span>openFDAの実データを取得</span></div>
-        <div class="mini-row"><b>03</b><span>510(k) / De Novo / PMAの候補を推定</span></div>
-        <div class="mini-row"><b>04</b><span>不足Evidenceと次のアクションを表示</span></div>
-      </div>
-    </section>
+<header class="nav">
+  <a class="brand" href="#top"><span class="mark">J</span><span><b>Japan Health</b><small>Healthcare access for international patients</small></span></a>
+  <nav>
+    <a href="#find">Find Care</a>
+    <a href="#difference">Why Us</a>
+    <a href="#resident">Residents</a>
+    <a href="#visitor">Visitors</a>
+    <a href="#ai">Ask AI</a>
+  </nav>
+  <a class="nav-cta" href="#find">Search care</a>
+</header>
 
-    <div class="workspace">
-      <aside class="input-card card">
-        <div class="card-head">
-          <div>
-            <div class="section-kicker">PRODUCT PROFILE</div>
-            <h2>製品情報</h2>
-          </div>
-          <span class="step">1/2</span>
-        </div>
-
-        <label>製品名</label>
-        <input id="productName" placeholder="例: GaitSense AI"/>
-
-        <label>製品を一言で</label>
-        <input id="shortDesc" placeholder="例: パーキンソン病患者の歩行を解析するAIソフトウェア"/>
-
-        <label>Intended Use / 使用目的</label>
-        <textarea id="intendedUse" placeholder="誰に、何を測定/診断/支援し、どの意思決定に使うか"></textarea>
-
-        <div class="two">
-          <div>
-            <label>製品タイプ</label>
-            <select id="productType">
-              <option value="SaMD">SaMD / Software</option>
-              <option value="Diagnostic">Diagnostic</option>
-              <option value="Monitoring">Monitoring</option>
-              <option value="Therapeutic">Therapeutic Device</option>
-              <option value="Implant">Implant</option>
-              <option value="Wearable">Wearable</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label>主な診療領域</label>
-            <select id="specialty">
-              <option value="Neurology">Neurology</option>
-              <option value="Cardiology">Cardiology</option>
-              <option value="Radiology">Radiology</option>
-              <option value="Orthopedics">Orthopedics</option>
-              <option value="Ophthalmology">Ophthalmology</option>
-              <option value="General">General Hospital</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="two">
-          <div>
-            <label>AI / ML</label>
-            <select id="aiMl">
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-          </div>
-          <div>
-            <label>患者リスク</label>
-            <select id="risk">
-              <option value="low">Low</option>
-              <option value="medium" selected>Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-        </div>
-
-        <label>既知のFDA Product Code（任意）</label>
-        <input id="productCode" maxlength="3" placeholder="例: OLO"/>
-        <div class="hint">分かる場合は3文字のProduct Codeを入れると検索精度が上がります。</div>
-
-        <button class="primary" id="analyzeBtn">
-          <span>FDA Readinessを分析</span><span>→</span>
-        </button>
-
-        <div class="legal-note">
-          初期スクリーニング用。正式なFDA分類、predicate選定、510(k)/De Novo/PMA戦略を確定するものではありません。
-        </div>
-      </aside>
-
-      <main>
-        <section id="emptyState" class="card empty-state">
-          <div class="radar"></div>
-          <h2>まだ分析していません</h2>
-          <p>左側に製品情報を入力すると、FDA公開データを検索してReadiness Reportを生成します。</p>
-        </section>
-
-        <section id="loadingState" class="card loading-state hidden">
-          <div class="spinner"></div>
-          <h2>FDAデータを検索中</h2>
-          <p id="loadingText">Classification databaseを確認しています…</p>
-          <div class="loading-lines"><i></i><i></i><i></i></div>
-        </section>
-
-        <div id="report" class="hidden">
-          <section class="card report-top">
-            <div>
-              <div class="section-kicker">US MARKET ENTRY READINESS</div>
-              <h2 id="reportName">—</h2>
-              <div class="verdict-row">
-                <span id="routeBadge" class="route-badge">—</span>
-                <span id="confidenceBadge" class="confidence">—</span>
-              </div>
-              <p id="summaryText" class="summary-text"></p>
-            </div>
-            <div class="score-wrap">
-              <div class="score-ring" id="scoreRing">
-                <div class="score-core">
-                  <strong id="scoreValue">0</strong>
-                  <span>/ 100</span>
-                </div>
-              </div>
-              <div class="score-label">FDA READINESS</div>
-            </div>
-          </section>
-
-          <section class="metric-grid">
-            <div class="metric card">
-              <span>Classification clarity</span><strong id="mClass">—</strong><small>分類候補の明確さ</small>
-            </div>
-            <div class="metric card">
-              <span>Predicate availability</span><strong id="mPred">—</strong><small>510(k)類似例</small>
-            </div>
-            <div class="metric card">
-              <span>Evidence readiness</span><strong id="mEvidence">—</strong><small>想定Evidence充足度</small>
-            </div>
-            <div class="metric card">
-              <span>Regulatory risk</span><strong id="mRisk">—</strong><small>高いほど要注意</small>
-            </div>
-          </section>
-
-          <section class="card">
-            <div class="card-head">
-              <div><div class="section-kicker">REGULATORY PATH</div><h2>想定FDA経路</h2></div>
-              <span class="step">2/2</span>
-            </div>
-            <div class="path-grid">
-              <div class="path-main">
-                <div class="path-label">Most likely route</div>
-                <div class="path-value" id="routeValue">—</div>
-                <p id="routeReason"></p>
-              </div>
-              <div class="path-side">
-                <div><span>Device Class</span><b id="deviceClass">—</b></div>
-                <div><span>Product Code</span><b id="bestCode">—</b></div>
-                <div><span>Regulation</span><b id="regNumber">—</b></div>
-                <div><span>Specialty</span><b id="fdaSpecialty">—</b></div>
-              </div>
-            </div>
-          </section>
-
-          <section class="card">
-            <div class="card-head">
-              <div><div class="section-kicker">FDA DATABASE</div><h2>類似FDA Classification</h2></div>
-              <span class="count" id="classCount">0 hits</span>
-            </div>
-            <div id="classificationTable" class="table-wrap"></div>
-          </section>
-
-          <section class="card">
-            <div class="card-head">
-              <div><div class="section-kicker">PREDICATE CANDIDATES</div><h2>510(k)候補</h2></div>
-              <span class="count" id="kCount">0 hits</span>
-            </div>
-            <p class="section-note">これは“predicate確定”ではなく、同じProduct Code周辺の過去clearance候補です。</p>
-            <div id="kTable" class="table-wrap"></div>
-          </section>
-
-          <section class="split">
-            <section class="card">
-              <div class="section-kicker">EVIDENCE GAP</div>
-              <h2>不足している可能性が高いもの</h2>
-              <div id="gapList" class="check-list"></div>
-            </section>
-            <section class="card">
-              <div class="section-kicker">NEXT ACTIONS</div>
-              <h2>次にやること</h2>
-              <ol id="actionList" class="action-list"></ol>
-            </section>
-          </section>
-
-          <section class="card">
-            <div class="card-head">
-              <div><div class="section-kicker">PMA SIGNALS</div><h2>高リスク側の類似情報</h2></div>
-              <span class="count" id="pmaCount">0 hits</span>
-            </div>
-            <div id="pmaTable" class="table-wrap"></div>
-          </section>
-
-          <section class="card source-card">
-            <div class="section-kicker">SOURCE & TRACEABILITY</div>
-            <h2>根拠データ</h2>
-            <p>FDA公開データをその場で取得して表示しています。各候補は正式な規制判断前に原典確認が必要です。</p>
-            <div class="source-links">
-              <a href="https://open.fda.gov/apis/device/classification/" target="_blank" rel="noreferrer">openFDA Classification ↗</a>
-              <a href="https://open.fda.gov/apis/device/510k/" target="_blank" rel="noreferrer">openFDA 510(k) ↗</a>
-              <a href="https://open.fda.gov/apis/device/pma/" target="_blank" rel="noreferrer">openFDA PMA ↗</a>
-            </div>
-          </section>
-
-          <section class="export-bar card">
-            <div>
-              <b>この結果を社内検討資料に</b>
-              <span>CSV保存・印刷・Expert Reviewへの導線を想定</span>
-            </div>
-            <div class="export-actions">
-              <button class="ghost" id="csvBtn">CSV出力</button>
-              <button class="ghost" onclick="window.print()">PDF / 印刷</button>
-              <button class="primary small" id="expertBtn">Expert Review</button>
-            </div>
-          </section>
-        </div>
-      </main>
+<main id="top">
+<section class="hero">
+  <div class="hero-copy">
+    <div class="eyebrow">JAPAN HEALTHCARE — WITHOUT THE LANGUAGE GUESSWORK</div>
+    <h1>Find the right care in Japan.<span>Not just an English-speaking doctor.</span></h1>
+    <p>
+      Compare clinics, hospitals and specialist pathways by medical focus, direct English support,
+      professional interpretation, referral rules, insurance, self-pay access and international-patient coordination.
+    </p>
+    <div class="hero-actions">
+      <a class="btn primary" href="#find">Find care in Japan</a>
+      <a class="btn ghost" href="#difference">See how we’re different</a>
     </div>
-
-    <footer>
-      <div>FDA Readiness AI • Prototype</div>
-      <div>Public FDA data + structured decision support</div>
-    </footer>
-  </div>
-
-  <div id="expertModal" class="modal hidden">
-    <div class="modal-card">
-      <button class="modal-close" id="closeModal">×</button>
-      <div class="section-kicker">MONETIZATION LAYER</div>
-      <h2>Expert Review</h2>
-      <p>ここを有料化ポイントにします。AI結果を、FDA経験者が確認して「本当に次に何をするべきか」まで返す想定です。</p>
-      <div class="pricing">
-        <div><span>Readiness Review</span><b>¥100,000〜</b></div>
-        <div><span>Predicate Deep Dive</span><b>¥200,000〜</b></div>
-        <div><span>US Entry Dossier</span><b>¥500,000〜</b></div>
-      </div>
-      <button class="primary" id="closeModal2">MVPではここまで</button>
+    <div class="hero-pills">
+      <span>Direct English</span><span>Interpreter Supported</span><span>Coordinator Required</span><span>Verified Sources</span>
     </div>
   </div>
 
+  <aside class="hero-card">
+    <span class="mini">THE KEY QUESTION</span>
+    <h2>“Can I actually use this hospital?”</h2>
+    <p>A normal directory tells you a hospital exists. Japan Health is designed to tell international patients how access actually works.</p>
+    <div class="access-row"><b>Doctor English</b><span class="yes">Yes / Partial / Limited</span></div>
+    <div class="access-row"><b>Interpreter</b><span class="yes">Available</span></div>
+    <div class="access-row"><b>Visitors accepted</b><span class="yes">Yes / Verify</span></div>
+    <div class="access-row"><b>Referral</b><span class="warn">Required / Not required</span></div>
+    <div class="access-row"><b>Coordinator</b><span class="purple">Direct / Recommended / Required</span></div>
+  </aside>
+</section>
+
+<section class="split-section">
+  <div class="split-card resident" id="resident">
+    <span class="eyebrow dark">I LIVE IN JAPAN</span>
+    <h2>Resident Care</h2>
+    <p>Everyday and ongoing care where location, repeat visits, insurance and communication matter.</p>
+    <div class="chips"><button data-preset="Internal Medicine">Internal Medicine</button><button data-preset="Dentistry">Dentist</button><button data-preset="OB-GYN">OB-GYN</button><button data-preset="Dermatology">Dermatology</button></div>
+    <a href="#find">Browse resident care →</a>
+  </div>
+
+  <div class="split-card visitor" id="visitor">
+    <span class="eyebrow">I'M VISITING JAPAN</span>
+    <h2>Visitor & Planned Care</h2>
+    <p>Health screening, dental, aesthetic care, specialist review and other services where self-pay and coordination matter.</p>
+    <div class="chips"><button data-preset="Health Screening">Health Screening</button><button data-preset="Cosmetic Surgery">Cosmetic Surgery</button><button data-preset="Dentistry">Dental</button><button data-preset="Second Opinion">Second Opinion</button></div>
+    <a href="#find">Browse visitor care →</a>
+  </div>
+</section>
+
+<section class="difference" id="difference">
+  <div class="section-head">
+    <div class="eyebrow dark">WHY JAPAN HEALTH</div>
+    <h2>Most directories stop at “English available.” We go deeper.</h2>
+    <p>International patients need to know not only who speaks English, but whether the doctor, reception, documents, interpretation and booking pathway actually work for them.</p>
+  </div>
+
+  <div class="feature-grid">
+    <article><span>01</span><h3>Direct English vs interpretation</h3><p>Separate physician-level English from reception English and professional medical interpretation.</p></article>
+    <article><span>02</span><h3>Specialty depth</h3><p>Surface highly specialized care even when the best route requires an interpreter or coordinator.</p></article>
+    <article><span>03</span><h3>Access rules</h3><p>Show visitor eligibility, referral requirements, self-pay status and coordinator requirements before the user wastes time.</p></article>
+    <article><span>04</span><h3>Source + verification</h3><p>Every production listing should show an official source and last-verified date instead of silently becoming stale.</p></article>
+    <article><span>05</span><h3>Transparent Access Score</h3><p>A rule-based score explains how easy the international access path is — without pretending to rank medical quality.</p></article>
+    <article><span>06</span><h3>Total-cost visibility</h3><p>Separate medical fees, interpreter fees and coordinator fees so users can see what is known and what still needs verification.</p></article>
+  </div>
+</section>
+
+<section class="finder" id="find">
+  <div class="finder-head">
+    <div>
+      <div class="eyebrow dark">CARE FINDER</div>
+      <h2>Search by what actually matters.</h2>
+      <p>Current provider cards are UX examples only. Replace them with verified official records before launch.</p>
+    </div>
+    <button id="resetFilters" class="text-btn">Reset filters</button>
+  </div>
+
+  <div class="filters">
+    <input id="q" placeholder="Search specialty, provider or area"/>
+    <select id="audience"><option value="all">Resident + Visitor</option><option value="resident">Residents</option><option value="visitor">Visitors</option></select>
+    <select id="city"><option value="all">All cities</option><option>Tokyo</option><option>Osaka</option></select>
+    <select id="language"><option value="all">Any language pathway</option><option value="direct">Direct English doctor</option><option value="interpreter">Interpreter supported</option></select>
+    <select id="coord"><option value="all">Any booking path</option><option value="required">Coordinator required</option><option value="not-required">Direct / no coordinator required</option></select>
+    <select id="referral"><option value="all">Any referral rule</option><option value="required">Referral required</option><option value="no">No referral required</option></select>
+  </div>
+
+  <div class="results-bar"><b id="resultCount">0 options</b><span>Compare access, not just language.</span></div>
+  <div id="providerGrid" class="provider-grid"></div>
+</section>
+
+<section class="ai-section" id="ai">
+  <div class="ai-copy">
+    <div class="eyebrow">AI ACCESS NAVIGATOR</div>
+    <h2>Describe what you need in normal English.</h2>
+    <p>The AI navigator routes you toward the right category and access pathway. It does not diagnose or recommend treatment.</p>
+  </div>
+  <div class="ai-card">
+    <div class="ai-head"><span class="dot"></span><b>Japan Health Navigator</b><small>Navigation only</small></div>
+    <div id="chatLog" class="chat-log"><div class="msg bot">Tell me whether you live in Japan or are visiting, your city, and what kind of care you're looking for.</div></div>
+    <div class="quick">
+      <button data-question="I live in Tokyo and need an English-speaking dentist">Resident dentist</button>
+      <button data-question="I'm visiting Tokyo and want a Ningen Dock health screening">Ningen Dock</button>
+      <button data-question="I have Parkinson's disease and want a specialist second opinion in Japan">Specialist second opinion</button>
+    </div>
+    <form id="chatForm" class="chat-form"><input id="chatInput" placeholder="e.g. I'm visiting Japan and need a neurology second opinion"/><button>Ask</button></form>
+  </div>
+</section>
+
+<section class="handoff-section">
+  <div>
+    <div class="eyebrow dark">HUMAN HANDOFF</div>
+    <h2>When the directory isn't enough, send a qualified case to a coordinator.</h2>
+    <p>The consumer-facing brand stays Japan Health. In the background, qualified leads can be routed to AMECA or another partner without exposing the partner architecture to the user.</p>
+  </div>
+  <button class="btn dark" onclick="openLeadModal()">Ask a coordinator</button>
+</section>
+</main>
+
+<footer>
+  <div class="brand"><span class="mark">J</span><span><b>Japan Health</b><small>Working brand</small></span></div>
+  <p>Discovery and coordination only. This platform does not diagnose, provide medical advice, guarantee provider quality, pricing, availability or outcomes. Demo provider records are not real recommendations.</p>
+</footer>
+
+<div class="modal hidden" id="providerModal">
+  <div class="modal-box">
+    <button class="close" onclick="closeProviderModal()">×</button>
+    <div id="providerDetail"></div>
+  </div>
+</div>
+
+<div class="modal hidden" id="leadModal">
+  <div class="modal-box lead-box">
+    <button class="close" onclick="closeLeadModal()">×</button>
+    <span class="mini">COORDINATOR HANDOFF</span>
+    <h2>Tell us what you're looking for.</h2>
+    <p class="muted">We’ll package the inquiry for a Japan-based coordination partner. This is not medical advice.</p>
+    <form id="leadForm">
+      <input id="leadProvider" type="hidden"/>
+      <div class="grid2"><label>Name<input id="leadName" required/></label><label>Email<input id="leadEmail" type="email" required/></label></div>
+      <div class="grid2"><label>I am<select id="leadAudience"><option value="visitor">Visiting Japan</option><option value="resident">Living in Japan</option></select></label><label>City<select id="leadCity"><option>Tokyo</option><option>Osaka</option><option>Other / flexible</option></select></label></div>
+      <label>What kind of care?<input id="leadNeed" placeholder="e.g. Health screening, neurology second opinion"/></label>
+      <label>Additional context<textarea id="leadNotes" placeholder="Relevant logistics or what you want help arranging. Avoid sending unnecessary sensitive health data in this demo."></textarea></label>
+      <label class="consent"><input id="leadConsent" type="checkbox" required/><span>I understand this is a coordination inquiry, not a diagnosis or medical recommendation.</span></label>
+      <button class="btn primary full" type="submit">Send inquiry</button>
+      <div id="leadStatus" class="lead-status"></div>
+    </form>
+  </div>
+</div>
+
+<script>window.PROVIDERS = [{"id": "demo-neuro-center", "name": "Demo Advanced Neuro Center", "city": "Tokyo", "area": "Bunkyo", "audience": ["visitor", "resident"], "specialties": ["Neurology", "Movement Disorders", "Second Opinion"], "doctorEnglish": "limited", "receptionEnglish": "yes", "interpreter": "yes", "englishDocs": "partial", "coordinator": "required", "insurance": "resident", "selfPay": "yes", "referral": "required", "access": "Moderate", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative example of a highly specialized center that may be more accessible through interpretation than direct English.", "expertiseEvidence": ["Movement-disorder focus (demo)", "Second-opinion pathway (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-international-clinic", "name": "Demo International Clinic", "city": "Tokyo", "area": "Shibuya", "audience": ["visitor", "resident"], "specialties": ["Internal Medicine", "General Practice"], "doctorEnglish": "yes", "receptionEnglish": "yes", "interpreter": "no", "englishDocs": "yes", "coordinator": "no", "insurance": "both", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative direct-English clinic profile for everyday care.", "expertiseEvidence": ["General internal medicine access (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-womens-health", "name": "Demo Women's Health Clinic", "city": "Tokyo", "area": "Minato", "audience": ["resident"], "specialties": ["OB-GYN", "Women's Health"], "doctorEnglish": "yes", "receptionEnglish": "yes", "interpreter": "available", "englishDocs": "partial", "coordinator": "no", "insurance": "resident", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative resident-focused OB-GYN profile.", "expertiseEvidence": ["Women's health / gynecology focus (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-dental-center", "name": "Demo Dental Center", "city": "Tokyo", "area": "Shinjuku", "audience": ["visitor", "resident"], "specialties": ["Dentistry", "Emergency Dental"], "doctorEnglish": "yes", "receptionEnglish": "yes", "interpreter": "no", "englishDocs": "partial", "coordinator": "no", "insurance": "both", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative dental profile showing resident and visitor use.", "expertiseEvidence": ["General dentistry + emergency dental access (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-checkup-center", "name": "Demo Executive Checkup Center", "city": "Tokyo", "area": "Chiyoda", "audience": ["visitor", "resident"], "specialties": ["Health Screening", "Ningen Dock", "Imaging"], "doctorEnglish": "partial", "receptionEnglish": "yes", "interpreter": "yes", "englishDocs": "yes", "coordinator": "recommended", "insurance": "self-pay", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative planned-care listing for health screening.", "expertiseEvidence": ["Ningen Dock / imaging pathway (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-cancer-center", "name": "Demo Oncology Referral Center", "city": "Tokyo", "area": "Chuo", "audience": ["visitor"], "specialties": ["Oncology", "Second Opinion", "Cancer Care"], "doctorEnglish": "limited", "receptionEnglish": "partial", "interpreter": "yes", "englishDocs": "partial", "coordinator": "required", "insurance": "self-pay", "selfPay": "yes", "referral": "required", "access": "Complex", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative specialist referral pathway where coordinator and record triage matter.", "expertiseEvidence": ["Oncology second-opinion pathway (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-cosmetic", "name": "Demo Aesthetic Surgery Clinic", "city": "Tokyo", "area": "Ginza", "audience": ["visitor"], "specialties": ["Cosmetic Surgery", "Aesthetic Medicine"], "doctorEnglish": "partial", "receptionEnglish": "yes", "interpreter": "available", "englishDocs": "yes", "coordinator": "optional", "insurance": "self-pay", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative planned aesthetic-care listing.", "expertiseEvidence": ["Aesthetic medicine pathway (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}, {"id": "demo-osaka-general", "name": "Demo Osaka International Medical Clinic", "city": "Osaka", "area": "Kita", "audience": ["visitor", "resident"], "specialties": ["Internal Medicine", "General Practice", "Dermatology"], "doctorEnglish": "yes", "receptionEnglish": "yes", "interpreter": "available", "englishDocs": "partial", "coordinator": "no", "insurance": "both", "selfPay": "yes", "referral": "no", "access": "Easy", "source": "Demo record — replace with official source", "verified": "Not verified", "notes": "Illustrative Osaka listing for geographic expansion.", "expertiseEvidence": ["General medicine + dermatology access (demo)"], "medicalCost": "Unknown", "interpreterCost": "Unknown", "coordinatorCost": "Unknown", "priceTransparency": "low"}];</script>
 <script src="/app.js"></script>
-</body>
-</html>
+</body></html>

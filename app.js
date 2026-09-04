@@ -1,266 +1,165 @@
-const $ = (id) => document.getElementById(id);
-let currentResult = null;
+const providers = window.PROVIDERS || [];
+const $ = id => document.getElementById(id);
 
-const stopWords = new Set(["device","system","medical","patient","patients","clinical","using","used","use","with","from","that","this","for","and","the","software","analysis","support","japan","japanese"]);
-
-function keywordGuess(text){
-  const words = (text || "").toLowerCase().replace(/[^a-z0-9\s-]/g," ").split(/\s+/)
-    .filter(x => x.length >= 4 && !stopWords.has(x));
-  return [...new Set(words)].slice(0,5);
+function human(v){
+  const map={yes:"Yes",no:"No",partial:"Partial",limited:"Limited",available:"Available",required:"Required",recommended:"Recommended",optional:"Optional","self-pay":"Self-pay",both:"Resident insurance + self-pay",resident:"Resident insurance",Easy:"Easy",Moderate:"Moderate",Complex:"Complex"};
+  return map[v]||v;
+}
+function badges(p){
+  const arr=[];
+  if(p.doctorEnglish==="yes")arr.push('<span class="badge">Doctor English</span>');
+  else if(["partial","limited"].includes(p.doctorEnglish))arr.push('<span class="badge gray">Doctor English: '+human(p.doctorEnglish)+'</span>');
+  if(["yes","available"].includes(p.interpreter))arr.push('<span class="badge green">Interpreter</span>');
+  if(["required","recommended"].includes(p.coordinator))arr.push('<span class="badge purple">Coordinator '+human(p.coordinator)+'</span>');
+  return arr.join("");
 }
 
-function show(id){
-  ["emptyState","loadingState","report"].forEach(x => $(x).classList.add("hidden"));
-  $(id).classList.remove("hidden");
+function accessScore(p){
+  let score=50, reasons=[];
+  if(p.doctorEnglish==="yes"){score+=15;reasons.push("doctor-level English");}
+  else if(p.doctorEnglish==="partial"){score+=8;reasons.push("partial doctor English");}
+  else if(p.doctorEnglish==="limited"){score+=2;reasons.push("limited doctor English");}
+  if(["yes","available"].includes(p.interpreter)){score+=12;reasons.push("interpreter pathway");}
+  if(p.receptionEnglish==="yes"){score+=7;reasons.push("English reception");}
+  if(p.englishDocs==="yes"){score+=5;reasons.push("English documents");}
+  else if(p.englishDocs==="partial"){score+=2;}
+  if(p.referral==="required"){score-=8;reasons.push("referral required");}
+  if(p.coordinator==="required"){score-=8;reasons.push("coordinator required");}
+  else if(p.coordinator==="recommended"){score-=3;}
+  if(p.selfPay==="yes"){score+=4;reasons.push("self-pay pathway");}
+  score=Math.max(0,Math.min(100,score));
+  return {score,reasons};
 }
-
-function esc(s){
-  return String(s ?? "").replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+function scoreLabel(score){
+  if(score>=80)return "Very accessible";
+  if(score>=65)return "Accessible";
+  if(score>=50)return "Moderate";
+  return "Complex";
 }
-
-function setLoadingMessages(){
-  const msgs = [
-    "Classification databaseを確認しています…",
-    "Product Code周辺の510(k)履歴を取得しています…",
-    "PMAシグナルを確認しています…",
-    "Evidence Gapを整理しています…"
-  ];
-  let i = 0;
-  $("loadingText").textContent = msgs[0];
-  return setInterval(() => { i=(i+1)%msgs.length; $("loadingText").textContent=msgs[i]; }, 950);
+function costSummary(p){
+  const parts=[["Medical",p.medicalCost||"Unknown"],["Interpreter",p.interpreterCost||"Unknown"],["Coordinator",p.coordinatorCost||"Unknown"]];
+  return parts.map(([k,v])=>`<div><small>${k.toUpperCase()}</small><b>${v}</b></div>`).join("");
 }
-
-function readForm(){
-  return {
-    productName:$("productName").value.trim(),
-    shortDesc:$("shortDesc").value.trim(),
-    intendedUse:$("intendedUse").value.trim(),
-    productType:$("productType").value,
-    specialty:$("specialty").value,
-    aiMl:$("aiMl").value,
-    risk:$("risk").value,
-    productCode:$("productCode").value.trim().toUpperCase()
-  }
+function renderProviders(){
+  const q=($("q").value||"").toLowerCase();
+  const aud=$("audience").value, city=$("city").value.toLowerCase(), lang=$("language").value, coord=$("coord").value, referral=$("referral").value;
+  const filtered=providers.filter(p=>{
+    const hay=(p.name+" "+p.city+" "+p.area+" "+p.specialties.join(" ")+" "+p.notes).toLowerCase();
+    const okq=!q||hay.includes(q);
+    const oka=aud==="all"||p.audience.includes(aud);
+    const okc=city==="all"||p.city.toLowerCase()===city;
+    const okl=lang==="all"||(lang==="direct"&&p.doctorEnglish==="yes")||(lang==="interpreter"&&["yes","available"].includes(p.interpreter));
+    const okcoord=coord==="all"||(coord==="required"&&p.coordinator==="required")||(coord==="not-required"&&p.coordinator!=="required");
+    const okref=referral==="all"||(referral==="required"&&p.referral==="required")||(referral==="no"&&p.referral==="no");
+    return okq&&oka&&okc&&okl&&okcoord&&okref;
+  });
+  $("resultCount").textContent=filtered.length+" options";
+  $("providerGrid").innerHTML=filtered.map(p=>`
+    <article class="provider-card">
+      <h3>${p.name}</h3>
+      <div class="provider-meta">${p.city} · ${p.area} · ${p.specialties.join(" / ")}</div>
+      <div class="badge-row">${badges(p)}</div>
+      <p>${p.notes}</p>
+      <div class="score-row">
+        <div class="score-ring"><b>${accessScore(p).score}</b><small>/100</small></div>
+        <div><strong>${scoreLabel(accessScore(p).score)}</strong><span>${accessScore(p).reasons.slice(0,3).join(" · ")}</span></div>
+      </div>
+      <div class="provider-gridline">
+        <div><small>REFERRAL</small><b>${human(p.referral)}</b></div>
+        <div><small>SELF-PAY</small><b>${human(p.selfPay)}</b></div>
+        <div><small>COORDINATOR</small><b>${human(p.coordinator)}</b></div>
+        <div><small>PRICE DATA</small><b>${human(p.priceTransparency)}</b></div>
+      </div>
+      <div class="cost-grid">${costSummary(p)}</div>
+      <div class="provider-actions">
+        <button class="small-btn" onclick="openProvider('${p.id}')">View access details</button>
+        <button class="small-btn primary" onclick="openLeadModal('${p.id}')">Ask a coordinator</button>
+      </div>
+      <div class="source-line">Source: ${p.source} · Last verified: ${p.verified}</div>
+    </article>`).join("");
 }
+["q","audience","city","language","coord","referral"].forEach(id=>$(id).addEventListener("input",renderProviders));
+$("resetFilters").onclick=()=>{ $("q").value="";$("audience").value="all";$("city").value="all";$("language").value="all";$("coord").value="all";$("referral").value="all";renderProviders(); };
+document.querySelectorAll("[data-preset]").forEach(btn=>btn.onclick=()=>{$("q").value=btn.dataset.preset;location.hash="find";renderProviders()});
 
-function heuristicLocal(profile, fda){
-  const classifications = fda.classifications || [];
-  const k510 = fda.k510 || [];
-  const pmas = fda.pmas || [];
-  const best = classifications[0] || {};
-  const cls = String(best.device_class || "");
-  let route = "De Novo / 510(k)要検討";
-  if(cls === "1") route = "Class I / Exempt可能性を確認";
-  if(cls === "2") route = k510.length ? "510(k) が最有力" : "510(k) / De Novo要検討";
-  if(cls === "3" || pmas.length) route = "PMA可能性を要評価";
+window.openProvider=id=>{
+  const p=providers.find(x=>x.id===id); if(!p)return;
+  $("providerDetail").innerHTML=`
+    <span class="mini">ACCESS PROFILE</span>
+    <h2>${p.name}</h2><div class="provider-meta">${p.city} · ${p.area} · ${p.specialties.join(" / ")}</div>
+    <div class="badge-row">${badges(p)}</div>
+    <div class="detail-grid">
+      <div><small>Doctor English</small><b>${human(p.doctorEnglish)}</b></div>
+      <div><small>Reception English</small><b>${human(p.receptionEnglish)}</b></div>
+      <div><small>Interpreter</small><b>${human(p.interpreter)}</b></div>
+      <div><small>English documents</small><b>${human(p.englishDocs)}</b></div>
+      <div><small>Coordinator</small><b>${human(p.coordinator)}</b></div>
+      <div><small>Referral</small><b>${human(p.referral)}</b></div>
+      <div><small>Insurance</small><b>${human(p.insurance)}</b></div>
+      <div><small>Self-pay</small><b>${human(p.selfPay)}</b></div>
+      <div><small>Access difficulty</small><b>${p.access}</b></div>
+      <div><small>Access Score</small><b>${accessScore(p).score}/100 — ${scoreLabel(accessScore(p).score)}</b></div>
+      <div><small>Price transparency</small><b>${human(p.priceTransparency)}</b></div>
+    </div>
+    <h3>Why this access score?</h3>
+    <p class="muted">${accessScore(p).reasons.join(" · ") || "Not enough structured access data yet."}</p>
+    <h3>Cost visibility</h3>
+    <div class="detail-grid">${costSummary(p)}</div>
+    <h3>Expertise evidence</h3>
+    <p class="muted">${(p.expertiseEvidence||[]).join(" · ") || "No verified expertise evidence added yet."}</p>
+    <p class="muted">${p.notes}</p>
+    <p class="source-line">Source: ${p.source}<br>Last verified: ${p.verified}</p>
+    <button class="btn dark" onclick="closeProviderModal();openLeadModal('${p.id}')">Ask a coordinator about this option</button>`;
+  $("providerModal").classList.remove("hidden");
+}
+window.closeProviderModal=()=>$("providerModal").classList.add("hidden");
 
-  let classClarity = Math.min(95, 35 + classifications.length*7 + (profile.productCode?20:0));
-  let predicate = Math.min(95, 20 + k510.length*8);
-  let evidence = 62;
-  if(profile.aiMl==="yes") evidence -= 8;
-  if(profile.risk==="high") evidence -= 15;
-  if(profile.productType==="Implant") evidence -= 12;
-  if(profile.productType==="SaMD") evidence -= 3;
-  evidence = Math.max(25, evidence);
-  let regRisk = 45;
-  if(cls==="3" || pmas.length>4) regRisk += 25;
-  if(profile.risk==="high") regRisk += 15;
-  if(k510.length>=5 && cls==="2") regRisk -= 15;
-  regRisk = Math.max(20, Math.min(95,regRisk));
-  const score = Math.round(classClarity*.28 + predicate*.25 + evidence*.30 + (100-regRisk)*.17);
-
-  const gaps = [];
-  if(profile.productType==="SaMD" || profile.aiMl==="yes"){
-    gaps.push(["Software documentation","Software architecture、verification/validation、hazard analysis等の文書整備を確認。 "]);
-    gaps.push(["Cybersecurity","ネットワーク接続やアップデート機能がある場合はcybersecurity documentationを評価。 "]);
+window.openLeadModal=(providerId="")=>{
+  $("leadProvider").value=providerId;
+  const p=providers.find(x=>x.id===providerId);
+  if(p){
+    $("leadNeed").value=p.specialties.join(" / ");
+    $("leadCity").value=p.city==="Osaka"?"Osaka":"Tokyo";
   }
-  if(profile.aiMl==="yes"){
-    gaps.push(["Algorithm validation","Training/validation data、subgroup performance、generalizabilityの根拠を準備。 "]);
-  }
-  if(profile.risk!=="low"){
-    gaps.push(["Clinical performance","Intended Useに直結する臨床性能のEvidenceが十分か確認。 "]);
-  }
-  gaps.push(["Usability / Human Factors","使用者・使用環境に応じてuse-related riskとhuman factorsの要否を確認。 "]);
-  if(profile.productType==="Implant" || profile.productType==="Therapeutic"){
-    gaps.push(["Bench / biocompatibility","機械・電気・材料・生体適合性等、該当するbench evidenceを確認。 "]);
-  }
+  $("leadModal").classList.remove("hidden");
+}
+window.closeLeadModal=()=>$("leadModal").classList.add("hidden");
 
-  const actions = [
-    `候補Product Code ${best.product_code || profile.productCode || "未確定"} の21 CFR分類とspecial controlsを原典確認する。`,
-    k510.length ? `上位${Math.min(k510.length,5)}件の510(k) Summaryを読み、Intended Use・technology・performance testingを比較する。` : "類似機器のpredicate候補が不足しているため、De Novo precedentも含めて検索範囲を広げる。",
-    "Q-Submissionが必要かを判断し、FDAへ確認したい論点を5〜10個に絞る。",
-    "US向けEvidence Gap表を作り、既存の日本データで埋められる項目と追加試験が必要な項目を分ける。",
-    "規制経路と追加Evidenceコストを入れたUS Go / No-Goモデルを作る。"
-  ];
-
-  return {
-    route,
-    confidence: classifications.length>=3 ? "Medium–High confidence" : classifications.length ? "Medium confidence" : "Low confidence",
-    score, classClarity, predicate, evidence, regRisk,
-    bestCode: best.product_code || profile.productCode || "未確定",
-    deviceClass: best.device_class ? `Class ${best.device_class}` : "未確定",
-    regNumber: best.regulation_number || "—",
-    fdaSpecialty: best.medical_specialty_description || profile.specialty,
-    routeReason: cls==="2" && k510.length
-      ? "Class II候補が見つかり、同一/近接Product Codeに510(k) clearance履歴が存在するため、まず510(k) substantial equivalenceの成立可能性を検証するのが合理的です。"
-      : cls==="3" || pmas.length
-      ? "Class III/PMA側のシグナルがあるため、510(k)を前提にせず高リスク経路を含めて評価する必要があります。"
-      : "公開データだけでは規制経路を確定できません。Classificationとpredicateの追加確認が必要です。",
-    summary: `${profile.productName || "対象製品"}について、FDA公開データから初期スクリーニングを実施しました。現時点では「${route}」が候補です。最大の価値は経路を断定することではなく、次のFDA相談・専門家レビュー前に調査論点を圧縮することです。`,
-    gaps, actions
+$("leadForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const p=providers.find(x=>x.id===$("leadProvider").value);
+  const payload={
+    name:$("leadName").value.trim(),
+    email:$("leadEmail").value.trim(),
+    audience:$("leadAudience").value,
+    city:$("leadCity").value,
+    need:$("leadNeed").value.trim(),
+    notes:$("leadNotes").value.trim(),
+    providerId:p?.id||null,
+    providerName:p?.name||null,
+    sourcePage:location.pathname,
+    partnerRoute:"ameca",
+    createdAt:new Date().toISOString()
   };
-}
-
-async function callFDA(profile){
-  const q = [profile.shortDesc, profile.intendedUse, profile.specialty].filter(Boolean).join(" ");
-  const params = new URLSearchParams({q, code:profile.productCode});
-  const res = await fetch("/api/fda-search?" + params.toString());
-  if(!res.ok) throw new Error("FDA API検索に失敗しました");
-  return await res.json();
-}
-
-async function callAI(profile, fda){
+  $("leadStatus").textContent="Sending…";
   try{
-    const res = await fetch("/api/analyze", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({profile,fda})
-    });
-    if(res.ok){
-      const j = await res.json();
-      if(j && j.analysis) return j.analysis;
-    }
-  }catch(e){}
-  return heuristicLocal(profile,fda);
+    const r=await fetch("/api/lead",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const j=await r.json();
+    if(!r.ok)throw new Error(j.error||"Failed");
+    $("leadStatus").textContent=j.forwarded?"Sent to the configured coordination partner.":"Demo captured. Configure AMECA_LEAD_WEBHOOK_URL to forward real leads.";
+  }catch(err){$("leadStatus").textContent="Preview mode: the live partner connection is not configured."}
+});
+
+function addMsg(t,type){const d=document.createElement("div");d.className="msg "+type;d.textContent=t;$("chatLog").appendChild(d);$("chatLog").scrollTop=$("chatLog").scrollHeight}
+function answer(text){
+  const m=text.toLowerCase();
+  if(m.includes("parkinson")||m.includes("second opinion")||m.includes("specialist")) return "For specialist review, don't filter only for English-speaking doctors. Search by specialty first, then compare interpreter and coordinator pathways.";
+  if(m.includes("ningen")||m.includes("health screening")||m.includes("checkup")) return "Use the Visitor pathway and search Health Screening. Compare direct English, interpreter support, self-pay access, and coordinator requirements.";
+  if(m.includes("dent")) return "For dental care, first choose Resident or Visitor because insurance, repeat visits and urgency change the best pathway.";
+  return "Start by telling me whether you live in Japan or are visiting, your city, and the specialty you need. I’ll help route the search.";
 }
+function ask(t){addMsg(t,"user");setTimeout(()=>addMsg(answer(t),"bot"),150)}
+$("chatForm").addEventListener("submit",e=>{e.preventDefault();const t=$("chatInput").value.trim();if(!t)return;$("chatInput").value="";ask(t)});
+document.querySelectorAll("[data-question]").forEach(b=>b.onclick=()=>ask(b.dataset.question));
 
-function tableClassification(rows){
-  if(!rows.length) return `<div class="section-note" style="padding:16px">候補が見つかりませんでした。Product Codeを直接入力するか、製品説明を英語キーワード中心にしてください。</div>`;
-  return `<table><thead><tr><th>Product Code</th><th>Device Name</th><th>Class</th><th>Regulation</th><th>Specialty</th></tr></thead><tbody>` +
-    rows.slice(0,10).map(r=>`<tr>
-      <td><b>${esc(r.product_code)}</b></td>
-      <td>${esc(r.device_name)}</td>
-      <td>Class ${esc(r.device_class)}</td>
-      <td>${esc(r.regulation_number || "—")}</td>
-      <td>${esc(r.medical_specialty_description || "—")}</td>
-    </tr>`).join("") + `</tbody></table>`;
-}
-
-function table510(rows){
-  if(!rows.length) return `<div class="section-note" style="padding:16px">同一Product Code周辺で510(k)候補を取得できませんでした。</div>`;
-  return `<table><thead><tr><th>K Number</th><th>Device</th><th>Applicant</th><th>Decision</th><th>Date</th><th>Code</th></tr></thead><tbody>` +
-    rows.slice(0,12).map(r=>`<tr>
-      <td><b>${esc(r.k_number)}</b></td>
-      <td>${esc(r.device_name || "—")}</td>
-      <td>${esc(r.applicant || "—")}</td>
-      <td>${esc(r.decision_description || r.decision_code || "—")}</td>
-      <td>${esc(r.decision_date || "—")}</td>
-      <td>${esc(r.product_code || "—")}</td>
-    </tr>`).join("") + `</tbody></table>`;
-}
-
-function tablePMA(rows){
-  if(!rows.length) return `<div class="section-note" style="padding:16px">近接キーワード/Product CodeでPMAレコードは取得されませんでした。</div>`;
-  return `<table><thead><tr><th>PMA</th><th>Trade / Generic Name</th><th>Applicant</th><th>Decision</th><th>Date</th><th>Code</th></tr></thead><tbody>` +
-    rows.slice(0,10).map(r=>`<tr>
-      <td><b>${esc(r.pma_number)}</b></td>
-      <td>${esc(r.trade_name || r.generic_name || "—")}</td>
-      <td>${esc(r.applicant || "—")}</td>
-      <td>${esc(r.decision_code || "—")}</td>
-      <td>${esc(r.decision_date || "—")}</td>
-      <td>${esc(r.product_code || "—")}</td>
-    </tr>`).join("") + `</tbody></table>`;
-}
-
-function render(profile,fda,a){
-  currentResult = {profile,fda,analysis:a,generatedAt:new Date().toISOString()};
-  $("reportName").textContent = profile.productName || "Unnamed product";
-  $("routeBadge").textContent = a.route;
-  $("confidenceBadge").textContent = a.confidence;
-  $("summaryText").textContent = a.summary;
-  $("scoreValue").textContent = a.score;
-  $("scoreRing").style.background = `conic-gradient(var(--cyan) 0deg,var(--cyan) ${a.score*3.6}deg,#263956 ${a.score*3.6}deg)`;
-  $("mClass").textContent = a.classClarity;
-  $("mPred").textContent = a.predicate;
-  $("mEvidence").textContent = a.evidence;
-  $("mRisk").textContent = a.regRisk;
-  $("routeValue").textContent = a.route;
-  $("routeReason").textContent = a.routeReason;
-  $("deviceClass").textContent = a.deviceClass;
-  $("bestCode").textContent = a.bestCode;
-  $("regNumber").textContent = a.regNumber;
-  $("fdaSpecialty").textContent = a.fdaSpecialty;
-
-  $("classCount").textContent = `${(fda.classifications||[]).length} hits`;
-  $("kCount").textContent = `${(fda.k510||[]).length} hits`;
-  $("pmaCount").textContent = `${(fda.pmas||[]).length} hits`;
-  $("classificationTable").innerHTML = tableClassification(fda.classifications||[]);
-  $("kTable").innerHTML = table510(fda.k510||[]);
-  $("pmaTable").innerHTML = tablePMA(fda.pmas||[]);
-
-  $("gapList").innerHTML = (a.gaps||[]).map(x=>`<div class="check-item"><div class="icon">!</div><div><b>${esc(x[0])}</b><p>${esc(x[1])}</p></div></div>`).join("");
-  $("actionList").innerHTML = (a.actions||[]).map(x=>`<li>${esc(x)}</li>`).join("");
-  show("report");
-}
-
-async function analyze(){
-  const profile = readForm();
-  if(!profile.productName || !profile.shortDesc){
-    alert("製品名と「製品を一言で」を入力してください。");
-    return;
-  }
-  show("loadingState");
-  const timer=setLoadingMessages();
-  try{
-    const fda = await callFDA(profile);
-    const a = await callAI(profile,fda);
-    clearInterval(timer);
-    render(profile,fda,a);
-  }catch(err){
-    clearInterval(timer);
-    show("emptyState");
-    $("emptyState").innerHTML = `<div><h2>検索できませんでした</h2><p>${esc(err.message)}</p><div class="error-box">VercelなどHTTPサーバー上で実行してください。ローカルでindex.htmlを直接開くと /api エンドポイントは動きません。</div></div>`;
-  }
-}
-
-function loadDemo(){
-  $("productName").value="GaitSense AI";
-  $("shortDesc").value="AI software for quantitative gait analysis in Parkinson's disease";
-  $("intendedUse").value="Software intended to analyze wearable sensor data from adults with Parkinson's disease to quantify gait features and support clinician assessment of motor function.";
-  $("productType").value="SaMD";
-  $("specialty").value="Neurology";
-  $("aiMl").value="yes";
-  $("risk").value="medium";
-  $("productCode").value="";
-}
-
-function csvEscape(v){
-  const s = typeof v==="object" ? JSON.stringify(v) : String(v ?? "");
-  return `"${s.replaceAll('"','""')}"`;
-}
-function exportCSV(){
-  if(!currentResult) return;
-  const rows = [
-    ["section","field","value"],
-    ["product","name",currentResult.profile.productName],
-    ["product","description",currentResult.profile.shortDesc],
-    ["analysis","score",currentResult.analysis.score],
-    ["analysis","route",currentResult.analysis.route],
-    ["analysis","device_class",currentResult.analysis.deviceClass],
-    ["analysis","product_code",currentResult.analysis.bestCode],
-    ["analysis","regulation_number",currentResult.analysis.regNumber],
-    ...currentResult.fda.classifications.map((r,i)=>["classification_"+(i+1),r.product_code,`${r.device_name} | Class ${r.device_class} | ${r.regulation_number||""}`]),
-    ...currentResult.fda.k510.map((r,i)=>["510k_"+(i+1),r.k_number,`${r.device_name||""} | ${r.applicant||""} | ${r.decision_date||""}`])
-  ];
-  const csv=rows.map(r=>r.map(csvEscape).join(",")).join("\n");
-  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="FDA_Readiness_Report.csv";a.click();URL.revokeObjectURL(a.href);
-}
-
-$("analyzeBtn").addEventListener("click",analyze);
-$("demoBtn").addEventListener("click",loadDemo);
-$("csvBtn").addEventListener("click",exportCSV);
-$("expertBtn").addEventListener("click",()=>$("expertModal").classList.remove("hidden"));
-$("closeModal").addEventListener("click",()=>$("expertModal").classList.add("hidden"));
-$("closeModal2").addEventListener("click",()=>$("expertModal").classList.add("hidden"));
-loadDemo();
+renderProviders();
