@@ -1,0 +1,30 @@
+name: Japan Health validation
+
+on:
+  push:
+    branches: [japan-health]
+  pull_request:
+    branches: [japan-health]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check app.js
+          node --check api/lead.js
+          if [ -f api/health.js ]; then node --check api/health.js; fi
+      - name: Verify production invariants
+        run: |
+          grep -Fq '<link rel="stylesheet" href="/styles.css"' index.html
+          grep -Fq '<script src="/app.js"></script>' index.html
+          grep -Fq 'fetch("/api/lead"' app.js
+          grep -Fq 'VALIDATION MVP' index.html
+          grep -Fq 'does not diagnose' index.html
+          grep -Fq 'Demo provider records are not real recommendations' index.html
+          grep -Fq 'partnerRoute:"ameca"' app.js
