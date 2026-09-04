@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://japan-health.example/schemas/expertise-evidence.schema.json",
+  "title": "Japan Health expertise evidence",
+  "description": "Typed evidence for care-access discovery. This schema does not represent clinical quality, outcomes, or treatment recommendations.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "label", "evidenceStatus"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["disease_focus", "procedure", "specialist_clinic", "second_opinion", "service", "research_focus"]
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "evidenceStatus": {
+      "type": "string",
+      "enum": ["demo", "official-source-verified"]
+    },
+    "sourceUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "verifiedDate": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 500
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"evidenceStatus": {"const": "official-source-verified"}}},
+      "then": {"required": ["sourceUrl", "verifiedDate"]}
+    }
+  ]
+}
