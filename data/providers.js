@@ -357,10 +357,17 @@ window.PROVIDERS = [
         "scope": "Up to 60 minutes; hospital medical interpreting included",
         "sourceUrl": "https://www.hosp.jihs.go.jp/en/icc/on_line.html",
         "verifiedDate": "2026-09-05"
+      },
+      {
+        "label": "Medical interpretation fee",
+        "amount": "JPY 5,500/day",
+        "scope": "Current Japanese FAQ lists this daily fee for specified languages; availability and applicable language should be confirmed",
+        "sourceUrl": "https://www.hosp.jihs.go.jp/icc/faq.html",
+        "verifiedDate": "2026-09-05"
       }
     ],
     "medicalCost": "Varies by pathway",
-    "interpreterCost": "No additional charge for hospital interpreting on ICC pages",
+    "interpreterCost": "JPY 5,500/day for specified languages (current Japanese FAQ)",
     "coordinatorCost": "Unknown",
     "priceTransparency": "medium"
   },
