@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="description" content="日本のMedTech / Digital Health企業向け FDA Readiness Checker"/>
+  <title>FDA Readiness AI | Japan → US MedTech</title>
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">F</div>
+        <div>
+          <div class="brand-name">FDA Readiness AI</div>
+          <div class="brand-sub">Japan → US MedTech Intelligence</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="pill">MVP</span>
+        <button class="ghost" id="demoBtn">サンプル入力</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">FOR JAPANESE MEDTECH & DIGITAL HEALTH</div>
+        <h1>米国進出前に、<br><span>FDAの「何が足りないか」</span>を見える化。</h1>
+        <p>製品情報を入力すると、公開FDAデータから類似分類・510(k)候補・PMA情報を検索し、想定規制経路とEvidence Gapを整理します。</p>
+        <div class="hero-badges">
+          <span>FDA Classification</span>
+          <span>510(k) Candidates</span>
+          <span>PMA Signals</span>
+          <span>Evidence Gaps</span>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="mini-title">このMVPでできること</div>
+        <div class="mini-row"><b>01</b><span>製品概要からFDA検索キーワードを生成</span></div>
+        <div class="mini-row"><b>02</b><span>openFDAの実データを取得</span></div>
+        <div class="mini-row"><b>03</b><span>510(k) / De Novo / PMAの候補を推定</span></div>
+        <div class="mini-row"><b>04</b><span>不足Evidenceと次のアクションを表示</span></div>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <aside class="input-card card">
+        <div class="card-head">
+          <div>
+            <div class="section-kicker">PRODUCT PROFILE</div>
+            <h2>製品情報</h2>
+          </div>
+          <span class="step">1/2</span>
+        </div>
+
+        <label>製品名</label>
+        <input id="productName" placeholder="例: GaitSense AI"/>
+
+        <label>製品を一言で</label>
+        <input id="shortDesc" placeholder="例: パーキンソン病患者の歩行を解析するAIソフトウェア"/>
+
+        <label>Intended Use / 使用目的</label>
+        <textarea id="intendedUse" placeholder="誰に、何を測定/診断/支援し、どの意思決定に使うか"></textarea>
+
+        <div class="two">
+          <div>
+            <label>製品タイプ</label>
+            <select id="productType">
+              <option value="SaMD">SaMD / Software</option>
+              <option value="Diagnostic">Diagnostic</option>
+              <option value="Monitoring">Monitoring</option>
+              <option value="Therapeutic">Therapeutic Device</option>
+              <option value="Implant">Implant</option>
+              <option value="Wearable">Wearable</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label>主な診療領域</label>
+            <select id="specialty">
+              <option value="Neurology">Neurology</option>
+              <option value="Cardiology">Cardiology</option>
+              <option value="Radiology">Radiology</option>
+              <option value="Orthopedics">Orthopedics</option>
+              <option value="Ophthalmology">Ophthalmology</option>
+              <option value="General">General Hospital</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="two">
+          <div>
+            <label>AI / ML</label>
+            <select id="aiMl">
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div>
+            <label>患者リスク</label>
+            <select id="risk">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+
+        <label>既知のFDA Product Code（任意）</label>
+        <input id="productCode" maxlength="3" placeholder="例: OLO"/>
+        <div class="hint">分かる場合は3文字のProduct Codeを入れると検索精度が上がります。</div>
+
+        <button class="primary" id="analyzeBtn">
+          <span>FDA Readinessを分析</span><span>→</span>
+        </button>
+
+        <div class="legal-note">
+          初期スクリーニング用。正式なFDA分類、predicate選定、510(k)/De Novo/PMA戦略を確定するものではありません。
+        </div>
+      </aside>
+
+      <main>
+        <section id="emptyState" class="card empty-state">
+          <div class="radar"></div>
+          <h2>まだ分析していません</h2>
+          <p>左側に製品情報を入力すると、FDA公開データを検索してReadiness Reportを生成します。</p>
+        </section>
+
+        <section id="loadingState" class="card loading-state hidden">
+          <div class="spinner"></div>
+          <h2>FDAデータを検索中</h2>
+          <p id="loadingText">Classification databaseを確認しています…</p>
+          <div class="loading-lines"><i></i><i></i><i></i></div>
+        </section>
+
+        <div id="report" class="hidden">
+          <section class="card report-top">
+            <div>
+              <div class="section-kicker">US MARKET ENTRY READINESS</div>
+              <h2 id="reportName">—</h2>
+              <div class="verdict-row">
+                <span id="routeBadge" class="route-badge">—</span>
+                <span id="confidenceBadge" class="confidence">—</span>
+              </div>
+              <p id="summaryText" class="summary-text"></p>
+            </div>
+            <div class="score-wrap">
+              <div class="score-ring" id="scoreRing">
+                <div class="score-core">
+                  <strong id="scoreValue">0</strong>
+                  <span>/ 100</span>
+                </div>
+              </div>
+              <div class="score-label">FDA READINESS</div>
+            </div>
+          </section>
+
+          <section class="metric-grid">
+            <div class="metric card">
+              <span>Classification clarity</span><strong id="mClass">—</strong><small>分類候補の明確さ</small>
+            </div>
+            <div class="metric card">
+              <span>Predicate availability</span><strong id="mPred">—</strong><small>510(k)類似例</small>
+            </div>
+            <div class="metric card">
+              <span>Evidence readiness</span><strong id="mEvidence">—</strong><small>想定Evidence充足度</small>
+            </div>
+            <div class="metric card">
+              <span>Regulatory risk</span><strong id="mRisk">—</strong><small>高いほど要注意</small>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <div><div class="section-kicker">REGULATORY PATH</div><h2>想定FDA経路</h2></div>
+              <span class="step">2/2</span>
+            </div>
+            <div class="path-grid">
+              <div class="path-main">
+                <div class="path-label">Most likely route</div>
+                <div class="path-value" id="routeValue">—</div>
+                <p id="routeReason"></p>
+              </div>
+              <div class="path-side">
+                <div><span>Device Class</span><b id="deviceClass">—</b></div>
+                <div><span>Product Code</span><b id="bestCode">—</b></div>
+                <div><span>Regulation</span><b id="regNumber">—</b></div>
+                <div><span>Specialty</span><b id="fdaSpecialty">—</b></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <div><div class="section-kicker">FDA DATABASE</div><h2>類似FDA Classification</h2></div>
+              <span class="count" id="classCount">0 hits</span>
+            </div>
+            <div id="classificationTable" class="table-wrap"></div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <div><div class="section-kicker">PREDICATE CANDIDATES</div><h2>510(k)候補</h2></div>
+              <span class="count" id="kCount">0 hits</span>
+            </div>
+            <p class="section-note">これは“predicate確定”ではなく、同じProduct Code周辺の過去clearance候補です。</p>
+            <div id="kTable" class="table-wrap"></div>
+          </section>
+
+          <section class="split">
+            <section class="card">
+              <div class="section-kicker">EVIDENCE GAP</div>
+              <h2>不足している可能性が高いもの</h2>
+              <div id="gapList" class="check-list"></div>
+            </section>
+            <section class="card">
+              <div class="section-kicker">NEXT ACTIONS</div>
+              <h2>次にやること</h2>
+              <ol id="actionList" class="action-list"></ol>
+            </section>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <div><div class="section-kicker">PMA SIGNALS</div><h2>高リスク側の類似情報</h2></div>
+              <span class="count" id="pmaCount">0 hits</span>
+            </div>
+            <div id="pmaTable" class="table-wrap"></div>
+          </section>
+
+          <section class="card source-card">
+            <div class="section-kicker">SOURCE & TRACEABILITY</div>
+            <h2>根拠データ</h2>
+            <p>FDA公開データをその場で取得して表示しています。各候補は正式な規制判断前に原典確認が必要です。</p>
+            <div class="source-links">
+              <a href="https://open.fda.gov/apis/device/classification/" target="_blank" rel="noreferrer">openFDA Classification ↗</a>
+              <a href="https://open.fda.gov/apis/device/510k/" target="_blank" rel="noreferrer">openFDA 510(k) ↗</a>
+              <a href="https://open.fda.gov/apis/device/pma/" target="_blank" rel="noreferrer">openFDA PMA ↗</a>
+            </div>
+          </section>
+
+          <section class="export-bar card">
+            <div>
+              <b>この結果を社内検討資料に</b>
+              <span>CSV保存・印刷・Expert Reviewへの導線を想定</span>
+            </div>
+            <div class="export-actions">
+              <button class="ghost" id="csvBtn">CSV出力</button>
+              <button class="ghost" onclick="window.print()">PDF / 印刷</button>
+              <button class="primary small" id="expertBtn">Expert Review</button>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <footer>
+      <div>FDA Readiness AI • Prototype</div>
+      <div>Public FDA data + structured decision support</div>
+    </footer>
+  </div>
+
+  <div id="expertModal" class="modal hidden">
+    <div class="modal-card">
+      <button class="modal-close" id="closeModal">×</button>
+      <div class="section-kicker">MONETIZATION LAYER</div>
+      <h2>Expert Review</h2>
+      <p>ここを有料化ポイントにします。AI結果を、FDA経験者が確認して「本当に次に何をするべきか」まで返す想定です。</p>
+      <div class="pricing">
+        <div><span>Readiness Review</span><b>¥100,000〜</b></div>
+        <div><span>Predicate Deep Dive</span><b>¥200,000〜</b></div>
+        <div><span>US Entry Dossier</span><b>¥500,000〜</b></div>
+      </div>
+      <button class="primary" id="closeModal2">MVPではここまで</button>
+    </div>
+  </div>
+
+<script src="/app.js"></script>
+</body>
+</html>
