@@ -29,6 +29,7 @@ jobs:
           node --check booking-readiness.js
           node --check specialist-handoff.js
           node --check demo-app.js
+          node --check home-featured.js
           node --check data/providers.js
           node --check data/tokyo-english-directory.js
           node --check data/tokyo-verified-clinics.js
@@ -85,6 +86,7 @@ jobs:
           grep -Fq '<script src="/access-confidence.js"></script>' index.html
           grep -Fq '<script src="/cost-intelligence.js"></script>' index.html
           grep -Fq '<script src="/lead-review.js"></script>' index.html
+          grep -Fq '<script src="/home-featured.js"></script>' index.html
           grep -Fq '<script src="/cost-intelligence.js"></script>' clinics.html
           grep -Fq '<script src="/specialist-access.js"></script>' clinics.html
           grep -Fq '<script src="/service-booking-filters.js"></script>' clinics.html
@@ -134,6 +136,10 @@ jobs:
           grep -Fq 'STEP 5 · NEXT STEP' demo.html
           grep -Fq 'Demo provider records are not real recommendations' demo.html
           grep -Fq '<script src="/demo-app.js"></script>' demo.html
-          grep -Fq 'Major medical travel' demo-app.js
-          grep -Fq 'Results are ordered by access-evidence fit for this demo, never clinical quality.' demo-app.js
-          grep -Fq 'AMECA can remain the placeholder downstream destination for the demo.' demo-app.js
+          grep -Fq 'serviceRequirement' demo-app.js
+          grep -Fq 'BOOKING READINESS' demo-app.js
+          grep -Fq 'documentation completeness only' demo-app.js
+          grep -Fq 'LOGISTICS NEXT STEP' demo-app.js
+          grep -Fq 'AMECA remains a placeholder downstream destination' demo-app.js
+          grep -Fq 'Run the guided product demo' home-featured.js
+          grep -Fq '/demo.html?audience=medical-travel&care=cancer&language=interpreter' home-featured.js
