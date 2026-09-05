@@ -9,10 +9,13 @@ const ALLOWED={
   evidenceType:new Set(["disease_focus","procedure","specialist_clinic","second_opinion","service","research_focus","legacy"]),
   evidenceStatus:new Set(["demo","verified","official-source-verified","unverified"]),
   costCompleteness:new Set(["components-recorded","partial","needs-verification"]),
-  costProvenance:new Set(["official-source-checked","demo-unverified","unknown"])
+  costProvenance:new Set(["official-source-checked","demo-unverified","unknown"]),
+  specialistEvidenceState:new Set(["source-backed","record-only","specialty-only","no-match","no-query"]),
+  serviceAccessState:new Set(["service-level-confirmed","provider-level-only","service-level-unverified","needs-verification"]),
+  accessRoute:new Set(["direct-physician-english","interpreter","external-interpreter","language-support","partial-or-limited-english","no-documented-route"])
 };
 const MAX_BODY_BYTES=16000;
-const SCHEMA_VERSION="2.5";
+const SCHEMA_VERSION="2.6";
 function enumValue(value,allowed,fallback){const normalized=String(value||"").trim();return allowed.has(normalized)?normalized:fallback;}
 function text(value,max){return String(value||"").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g," ").trim().slice(0,max);}
 function safeUrl(value){const v=text(value,1000);if(!v)return null;try{const u=new URL(v);return u.protocol==="https:"?u.toString():null;}catch{return null;}}
@@ -54,12 +57,42 @@ function sanitizeCostSnapshot(raw){
     disclaimer:"Cost-readiness context only. Recorded components and published examples are not a price quote, affordability score, or guaranteed total; partners must re-check current fees."
   };
 }
+function sanitizeSpecialistAccessSnapshot(raw){
+  if(!raw||typeof raw!=="object")return null;
+  const matches=Array.isArray(raw.matches)?raw.matches.slice(0,8).map(e=>({
+    type:enumValue(e&&e.type,ALLOWED.evidenceType,"legacy"),
+    label:text(e&&e.label,300),
+    status:enumValue(e&&e.status,ALLOWED.evidenceStatus,"unverified"),
+    sourceUrl:safeUrl(e&&e.sourceUrl),
+    verifiedDate:text(e&&e.verifiedDate,30)||null
+  })).filter(e=>e.label):[];
+  const s=raw.serviceAccess&&typeof raw.serviceAccess==="object"?raw.serviceAccess:{};
+  return{
+    query:text(raw.query,300),
+    evidenceState:enumValue(raw.evidenceState,ALLOWED.specialistEvidenceState,"no-match"),
+    sourceBackedCount:boundedInt(raw.sourceBackedCount,0,8,0),
+    matches,
+    providerAccessRoute:enumValue(raw.providerAccessRoute,ALLOWED.accessRoute,"no-documented-route"),
+    providerAccessRouteVerified:raw.providerAccessRouteVerified===true,
+    serviceAccess:{
+      state:enumValue(s.state,ALLOWED.serviceAccessState,"needs-verification"),
+      route:enumValue(s.route,ALLOWED.accessRoute,"no-documented-route"),
+      sourceUrl:safeUrl(s.sourceUrl),
+      verifiedDate:text(s.verifiedDate,30)||null,
+      evidenceLabel:text(s.evidenceLabel,300)||null
+    },
+    provenance:enumValue(raw.provenance,ALLOWED.costProvenance,"unknown"),
+    disclaimer:"Specialist evidence and service-language access context only. Provider-wide language support is not proof that a specific specialist service offers the same route; partners must re-check current access. Not medical advice or clinical-quality ranking."
+  };
+}
 function coordinationSummary(lead){
   const c=lead.accessConstraints,needs=[];
   if(c.language==="interpreter")needs.push("interpreter-pathway");
   if(c.coordinator==="required")needs.push("coordinator-required");
   if(c.referral==="required")needs.push("referral-required");
   if(lead.finderContext.verifiedOnly)needs.push("provider-source-checked-only");
+  const specialist=lead.specialistAccessSnapshot;
+  if(specialist&&["provider-level-only","service-level-unverified","needs-verification"].includes(specialist.serviceAccess.state))needs.push("service-language-verification");
   const snap=lead.costSnapshot,priceTransparency=lead.providerContext?.accessSnapshot?.priceTransparency||snap?.priceTransparency||"unknown";
   let costVisibility=["medium","high"].includes(priceTransparency)?"partial-or-better":"needs-verification";
   if(snap?.completeness==="components-recorded")costVisibility="components-recorded-final-total-unconfirmed";
@@ -90,6 +123,14 @@ function routingTags(lead){
   if(lead.providerContext?.accessSnapshot?.scoreBand)tags.push(`access-friction:${lead.providerContext.accessSnapshot.scoreBand}`);
   const pt=lead.providerContext?.accessSnapshot?.priceTransparency;
   if(pt&&pt!=="unknown")tags.push(`price-transparency:${pt}`);
+  if(lead.specialistAccessSnapshot){
+    const s=lead.specialistAccessSnapshot;
+    tags.push("specialist-context:present");
+    tags.push(`specialist-evidence:${s.evidenceState}`);
+    tags.push(`service-access:${s.serviceAccess.state}`);
+    tags.push(`service-route:${s.serviceAccess.route}`);
+    if(s.serviceAccess.sourceUrl)tags.push("service-access:source-link-present");
+  }
   if(lead.costSnapshot){
     tags.push(`cost-components:${lead.costSnapshot.recorded}-of-${lead.costSnapshot.total}`);
     tags.push(`cost-context:${lead.costSnapshot.provenance}`);
@@ -118,12 +159,12 @@ module.exports=async function handler(req,res){
   const accessConstraints={query:text(rawConstraints.q,300),audience:enumValue(rawConstraints.audience,ALLOWED.audience,"unknown"),city:text(rawConstraints.city||"all",100),language:enumValue(rawConstraints.language,ALLOWED.language,"all"),coordinator:enumValue(rawConstraints.coordinator,ALLOWED.coordinator,"all"),referral:enumValue(rawConstraints.referral,ALLOWED.referral,"all")};
   const id=requestId();res.setHeader("X-Request-Id",id);
   const sourcePage=sanitizeSourcePage(b.sourcePage),pageContext=finderContext(sourcePage);
-  const lead={schemaVersion:SCHEMA_VERSION,requestId:id,name,email,audience:enumValue(b.audience,ALLOWED.audience,"unknown"),city:text(b.city||"unknown",100),need:text(b.need,500),notes:text(b.notes,5000),timeframe:enumValue(b.timeframe,ALLOWED.timeframe,"flexible"),contactPreference:enumValue(b.contactPreference,ALLOWED.contactPreference,"email"),providerSelection:b.providerId||b.providerName?{id:b.providerId?text(b.providerId,150):null,name:b.providerName?text(b.providerName,300):null,provenance:"client-supplied-unverified-context"}:null,providerContext:sanitizeProviderContext(b.providerContext),costSnapshot:sanitizeCostSnapshot(b.costSnapshot),sourcePage,finderContext:pageContext,partnerRoute:"unconfigured",accessConstraints,consentScope:"coordination-inquiry-partner-sharing",consentRecorded:true,consentRecordedAt:new Date().toISOString(),createdAt:new Date().toISOString()};
+  const lead={schemaVersion:SCHEMA_VERSION,requestId:id,name,email,audience:enumValue(b.audience,ALLOWED.audience,"unknown"),city:text(b.city||"unknown",100),need:text(b.need,500),notes:text(b.notes,5000),timeframe:enumValue(b.timeframe,ALLOWED.timeframe,"flexible"),contactPreference:enumValue(b.contactPreference,ALLOWED.contactPreference,"email"),providerSelection:b.providerId||b.providerName?{id:b.providerId?text(b.providerId,150):null,name:b.providerName?text(b.providerName,300):null,provenance:"client-supplied-unverified-context"}:null,providerContext:sanitizeProviderContext(b.providerContext),costSnapshot:sanitizeCostSnapshot(b.costSnapshot),specialistAccessSnapshot:sanitizeSpecialistAccessSnapshot(b.specialistAccessSnapshot),sourcePage,finderContext:pageContext,partnerRoute:"unconfigured",accessConstraints,consentScope:"coordination-inquiry-partner-sharing",consentRecorded:true,consentRecordedAt:new Date().toISOString(),createdAt:new Date().toISOString()};
   lead.coordinationSummary=coordinationSummary(lead);
   lead.routingTags=routingTags(lead);
   const amecaWebhook=process.env.AMECA_LEAD_WEBHOOK_URL,fallbackWebhook=process.env.GENERAL_PARTNER_WEBHOOK_URL;
   const allowDemoLeads=String(process.env.ALLOW_DEMO_LEADS||"").toLowerCase()==="true";
-  if(!amecaWebhook&&!fallbackWebhook){if(allowDemoLeads){console.log("DEMO QUALIFIED LEAD",{requestId:id,audience:lead.audience,city:lead.city,need:lead.need,timeframe:lead.timeframe,contactPreference:lead.contactPreference,providerSelection:lead.providerSelection&&lead.providerSelection.id,accessConstraints:lead.accessConstraints,finderContext:lead.finderContext,costSnapshot:lead.costSnapshot,coordinationSummary:lead.coordinationSummary,routingTags:lead.routingTags});return res.status(200).json({ok:true,forwarded:false,demo:true,requestId:id});}res.setHeader("Retry-After","300");return res.status(503).json({error:"Coordinator handoff is temporarily unavailable. Please try again later.",requestId:id});}
+  if(!amecaWebhook&&!fallbackWebhook){if(allowDemoLeads){console.log("DEMO QUALIFIED LEAD",{requestId:id,audience:lead.audience,city:lead.city,need:lead.need,timeframe:lead.timeframe,contactPreference:lead.contactPreference,providerSelection:lead.providerSelection&&lead.providerSelection.id,accessConstraints:lead.accessConstraints,finderContext:lead.finderContext,costSnapshot:lead.costSnapshot,specialistAccessSnapshot:lead.specialistAccessSnapshot,coordinationSummary:lead.coordinationSummary,routingTags:lead.routingTags});return res.status(200).json({ok:true,forwarded:false,demo:true,requestId:id});}res.setHeader("Retry-After","300");return res.status(503).json({error:"Coordinator handoff is temporarily unavailable. Please try again later.",requestId:id});}
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);
   try{
     if(amecaWebhook){try{const sent=await postPartner(amecaWebhook,"ameca",lead,id,controller.signal);return res.status(200).json({ok:true,forwarded:true,destination:sent.destination,requestId:id});}catch(e){console.error("AMECA HANDOFF FAILED",{requestId:id,message:e&&e.message?e.message:"unknown"});if(!fallbackWebhook||fallbackWebhook===amecaWebhook)throw e;}}
