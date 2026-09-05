@@ -13,7 +13,8 @@ const STATIC_PROVIDER_FILES=[
   "data/provider-promotions-batch-3.js",
   "data/provider-promotions-batch-4.js",
   "data/provider-promotions-batch-5.js",
-  "data/provider-promotions-batch-6.js"
+  "data/provider-promotions-batch-6.js",
+  "data/provider-promotions-batch-7.js"
 ];
 
 function validProvider(p){
