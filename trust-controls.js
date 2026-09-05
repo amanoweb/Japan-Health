@@ -9,6 +9,8 @@
   toggle.checked=params.get("verifiedOnly")==="1";
 
   const isTokyoDirectory=p=>Boolean(p&&p.directoryBasis==="Tokyo Metropolitan Government foreign-patient list");
+  const isDirectoryOnly=p=>Boolean(p&&(p.discoveryStatus==="directory-only"||isTokyoDirectory(p)));
+  const isProviderVerified=p=>Boolean(p&&p.recordStatus==="official-source-verified"&&!isDirectoryOnly(p));
   const providerForCard=card=>providers.find(p=>p.name===card.querySelector("h3")?.textContent?.trim());
   const ageInDays=date=>{
     if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||"")))return null;
@@ -26,13 +28,28 @@
   }
 
   function neutralizeDirectoryScore(card,provider){
-    if(!isTokyoDirectory(provider))return;
+    if(!isDirectoryOnly(provider))return;
     const badgeRow=card.querySelector(".badge-row");
     if(badgeRow&&!badgeRow.querySelector(".directory-language-badge")){
       const badge=document.createElement("span");
       badge.className="badge directory-language-badge";
-      badge.textContent=`Official Tokyo list · ${provider.languagesListed||"English listed"}`;
+      badge.textContent=isTokyoDirectory(provider)
+        ?`Official Tokyo list · ${provider.languagesListed||"English listed"}`
+        :"JNTO directory candidate · English listed";
       badgeRow.prepend(badge);
+    }
+
+    const state=card.querySelector(".record-state");
+    if(state){
+      state.className="record-state demo directory-only-state";
+      state.textContent="DIRECTORY LISTING ONLY · PROVIDER DETAILS NOT YET VERIFIED";
+    }
+    card.querySelector(".freshness-note")?.remove();
+
+    const source=card.querySelector(".source-line");
+    if(source&&!source.dataset.directoryLabeled){
+      source.dataset.directoryLabeled="1";
+      source.prepend("Directory discovery source only · ");
     }
 
     const score=card.querySelector(".score-row");
@@ -42,7 +59,9 @@
       if(value)value.textContent="—";
       if(suffix)suffix.textContent="";
       if(label)label.textContent="Access score pending";
-      if(desc)desc.textContent="English is listed by Tokyo; physician/reception/interpreter details are not yet verified.";
+      if(desc)desc.textContent=isTokyoDirectory(provider)
+        ?"English is listed by Tokyo; physician/reception/interpreter details are not yet verified."
+        :"JNTO directory discovery is confirmed; provider-level communication and booking details are not yet verified.";
     }
     const breakdown=card.querySelector(".score-breakdown");
     if(breakdown)breakdown.hidden=true;
@@ -60,23 +79,25 @@
   function annotateAndFilter(){
     const cards=[...grid.querySelectorAll(".provider-card")];
     const selectedArea=areaSelect?.value||"all";
-    let visible=0,verifiedVisible=0;
+    let visible=0,verifiedVisible=0,directoryVisible=0;
     cards.forEach(card=>{
       const provider=providerForCard(card);
       if(!provider)return;
-      const isVerified=provider.recordStatus==="official-source-verified";
+      const isVerified=isProviderVerified(provider);
+      const directoryOnly=isDirectoryOnly(provider);
       const areaMatch=selectedArea==="all"||provider.area===selectedArea;
       card.hidden=Boolean((toggle.checked&&!isVerified)||!areaMatch);
       if(!card.hidden){
         visible++;
         if(isVerified)verifiedVisible++;
+        if(directoryOnly)directoryVisible++;
       }
 
       neutralizeDirectoryScore(card,provider);
       applyAreaOrder(card,provider);
 
       const badge=card.querySelector(".record-state.verified");
-      if(badge&&!card.querySelector(".freshness-note")){
+      if(isVerified&&badge&&!card.querySelector(".freshness-note")){
         const days=ageInDays(provider.verified);
         if(days!==null){
           const freshness=document.createElement("span");
@@ -88,12 +109,12 @@
     });
 
     const count=document.getElementById("resultCount");
-    if(count)count.textContent=`${visible} options · ${verifiedVisible} official-source checked`;
+    if(count)count.textContent=`${visible} options · ${verifiedVisible} provider-source checked${directoryVisible?` · ${directoryVisible} directory-only`:""}`;
     if(note){
       const areaText=selectedArea==="all"?"Tokyo":selectedArea;
       note.textContent=toggle.checked
-        ?`Showing ${visible} official-source checked option${visible===1?"":"s"} in ${areaText}. Source checks support only the displayed access facts; confirm current acceptance before booking.`
-        :`${visible} option${visible===1?"":"s"} shown in ${areaText}; ${verifiedVisible} are official-source checked. Unknown language roles are not treated as poor English.`;
+        ?`Showing ${visible} provider-source checked option${visible===1?"":"s"} in ${areaText}. Directory-only discovery records are excluded; confirm current acceptance before booking.`
+        :`${visible} option${visible===1?"":"s"} shown in ${areaText}; ${verifiedVisible} have provider-level source checks and ${directoryVisible} are directory-only discovery records. Unknown language roles are not treated as poor English.`;
     }
   }
 
@@ -136,7 +157,14 @@
     if(!detail)return;
     const name=detail.querySelector("h2")?.textContent?.trim();
     const provider=providers.find(p=>p.name===name);
-    if(!isTokyoDirectory(provider))return;
+    if(!isDirectoryOnly(provider))return;
+
+    const state=detail.querySelector(".record-state");
+    if(state){
+      state.className="record-state demo directory-only-state";
+      state.textContent="DIRECTORY LISTING ONLY · PROVIDER DETAILS NOT YET VERIFIED";
+    }
+    detail.querySelector(".freshness-note")?.remove();
 
     detail.querySelectorAll(".detail-grid>div").forEach(cell=>{
       if(cell.querySelector("small")?.textContent?.trim()==="Access Score"){
@@ -151,12 +179,13 @@
       }
     });
     detail.querySelectorAll("p.muted").forEach(p=>{
-      if(/score summarizes international-access friction/i.test(p.textContent||""))p.textContent="This baseline record is not assigned a numeric International Access Score until provider-level communication and booking facts are verified. Unknown is not treated as poor access.";
+      if(/score summarizes international-access friction/i.test(p.textContent||""))p.textContent="This directory-discovery record is not assigned a numeric International Access Score until provider-level communication and booking facts are verified. Unknown is not treated as poor access.";
     });
     if(!detail.querySelector(".directory-detail-note")){
       const n=document.createElement("div");
       n.className="directory-detail-note";
-      n.innerHTML=`<b>Official Tokyo language evidence</b><span>${provider.languagesListed||"English listed"}</span><small>This confirms the government directory listing only; it does not establish physician fluency, reception fluency or interpreter availability.</small>`;
+      const label=isTokyoDirectory(provider)?(provider.languagesListed||"English listed"):"English listed in JNTO Medical Institution Search";
+      n.innerHTML=`<b>Official directory discovery evidence</b><span>${label}</span><small>This confirms directory discovery only; it does not establish physician fluency, reception fluency, interpreter availability, insurance, self-pay rules, prices or current acceptance.</small>`;
       detail.querySelector(".provider-meta")?.insertAdjacentElement("afterend",n);
     }
   }
@@ -173,8 +202,6 @@
   }
 
   function injectConsumerEntry(){
-    // Tokyo now has a first-class three-path journey in index.html. Do not re-inject
-    // the older Japan-wide starter or overwrite the Tokyo hero copy.
     if(document.getElementById("journeys")||document.getElementById("careStarter"))return;
   }
 
