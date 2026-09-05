@@ -67,8 +67,12 @@
       const changed=ordered.some((card,i)=>cards[i]!==card);
       if(changed)ordered.forEach(card=>grid.appendChild(card));
     }
-    const count=$("resultCount"),audited=cards.map(card=>({p:providerMap.get(card.querySelector("h3")?.textContent?.trim()),card})).filter(x=>x.p).map(x=>summary(x.p));
-    if(count&&audited.length){const confirmed=audited.filter(x=>x.rows.length&&x.counts.unknown===0&&x.counts.mismatch===0).length,verify=audited.filter(x=>x.counts.unknown>0).length;if(activeConstraints().length)count.textContent+=` · ${confirmed} fully confirmed · ${verify} need verification`;}
+    const count=$("resultCount"),audited=cards.map(card=>providerMap.get(card.querySelector("h3")?.textContent?.trim())).filter(Boolean).map(summary);
+    if(count&&audited.length&&activeConstraints().length){
+      const confirmed=audited.filter(x=>x.rows.length&&x.counts.unknown===0&&x.counts.mismatch===0).length,verify=audited.filter(x=>x.counts.unknown>0).length;
+      const base=count.textContent.replace(/ · \d+ fully confirmed · \d+ need verification$/,'');
+      count.textContent=`${base} · ${confirmed} fully confirmed · ${verify} need verification`;
+    }
   }
 
   function refresh(){renderContext();requestAnimationFrame(applyCardAudits)}
