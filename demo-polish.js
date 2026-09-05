@@ -40,15 +40,22 @@
     const panel=[...document.querySelectorAll(".demo-panel")].find(x=>!x.classList.contains("hidden-step"));
     const h=panel?.querySelector("h2");if(!h||h.dataset.demoFocusReady)return;h.dataset.demoFocusReady="1";h.setAttribute("tabindex","-1");h.focus({preventScroll:true});
   }
+  function loadModule(src,key){
+    if(document.querySelector(`script[data-${key}]`))return;
+    const s=document.createElement("script");s.src=src;s.defer=true;s.setAttribute(`data-${key}`,"1");document.head.appendChild(s);
+  }
+  function ensureDemoModules(){
+    loadModule("/demo-continuity.js","demo-continuity");
+    loadModule("/demo-access-score.js","demo-access-score");
+    loadModule("/demo-handoff-summary.js","demo-handoff-summary");
+  }
   function refresh(){renderScenario();decorateCosts();recovery();}
   const nativeReplace=history.replaceState.bind(history);history.replaceState=(...args)=>{const r=nativeReplace(...args);queueMicrotask(refresh);return r;};
   const observer=new MutationObserver(()=>requestAnimationFrame(()=>{refresh();focusCurrentPanel();}));
   [$("demoResults"),document.querySelector("main")].filter(Boolean).forEach(el=>observer.observe(el,{childList:true,subtree:true,attributes:true,attributeFilter:["class"]}));
   const style=document.createElement("style");style.id="demo-polish-styles";style.textContent=`.demo-scenario-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:11px 13px;border:1px solid #dce6ef;border-radius:13px;background:#fff}.demo-scenario-bar small,.demo-scenario-bar b,.demo-scenario-bar span{display:block}.demo-scenario-bar small{font-size:7px;font-weight:900;letter-spacing:.06em;color:#718295}.demo-scenario-bar b{font-size:10px;color:#173c5f;margin:2px 0}.demo-scenario-bar span{font-size:8px;color:#607487}.demo-cost-readiness{background:#eef6ff;color:#245f9d}.demo-recovery{display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #ead7ad}.demo-recovery>b,.demo-recovery>span{display:block}.demo-recovery>span{font-size:8px}.demo-recovery>div{display:flex;flex-wrap:wrap;gap:7px}@media(max-width:600px){.demo-scenario-bar{align-items:stretch;flex-direction:column}.demo-scenario-bar .small-btn{width:100%;text-align:center}.demo-recovery>div{display:grid}.demo-recovery .small-btn{width:100%;text-align:center}}`;
   document.head.appendChild(style);
-  if(!document.querySelector('script[data-demo-continuity]')){
-    const s=document.createElement("script");s.src="/demo-continuity.js";s.defer=true;s.dataset.demoContinuity="1";document.head.appendChild(s);
-  }
+  ensureDemoModules();
   document.addEventListener("click",()=>queueMicrotask(refresh));
   refresh();
 })();
