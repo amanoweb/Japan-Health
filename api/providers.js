@@ -6,7 +6,8 @@ const crypto=require("crypto");
 const STATIC_PROVIDER_FILES=[
   "data/providers.js",
   "data/tokyo-english-directory.js",
-  "data/tokyo-verified-clinics.js"
+  "data/tokyo-verified-clinics.js",
+  "data/drive-provider-handoff.js"
 ];
 
 function validProvider(p){
