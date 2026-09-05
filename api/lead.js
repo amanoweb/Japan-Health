@@ -10,11 +10,15 @@ const ALLOWED={
   evidenceStatus:new Set(["demo","verified","official-source-verified","unverified"])
 };
 const MAX_BODY_BYTES=16000;
+const SCHEMA_VERSION="2.5";
 function enumValue(value,allowed,fallback){const normalized=String(value||"").trim();return allowed.has(normalized)?normalized:fallback;}
 function text(value,max){return String(value||"").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g," ").trim().slice(0,max);}
 function safeUrl(value){const v=text(value,1000);if(!v)return null;try{const u=new URL(v);return u.protocol==="https:"?u.toString():null;}catch{return null;}}
 function requestId(){return `jh_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;}
 function finiteScore(value){const n=Number(value);return Number.isFinite(n)?Math.max(0,Math.min(100,Math.round(n))):null;}
+function scoreBand(value){const n=finiteScore(value);if(n===null)return null;return n>=80?"lower-friction":n>=65?"relatively-lower-friction":n>=50?"moderate-friction":"higher-friction";}
+function sanitizeSourcePage(value){const raw=text(value,700);if(!raw)return"";try{const u=new URL(raw,"https://japan-health.local");return `${u.pathname}${u.search}${u.hash}`.slice(0,700);}catch{return raw.startsWith("/")?raw:"";}}
+function finderContext(sourcePage){if(!sourcePage)return{area:null,verifiedOnly:false};try{const u=new URL(sourcePage,"https://japan-health.local");return{area:text(u.searchParams.get("area"),100)||null,verifiedOnly:u.searchParams.get("verifiedOnly")==="1"};}catch{return{area:null,verifiedOnly:false};}}
 function sanitizeProviderContext(raw){
   if(!raw||typeof raw!=="object")return null;
   const evidence=Array.isArray(raw.evidence)?raw.evidence.slice(0,12).map(e=>({
@@ -26,10 +30,11 @@ function sanitizeProviderContext(raw){
   })).filter(e=>e.label):[];
   const s=raw.accessSnapshot&&typeof raw.accessSnapshot==="object"?raw.accessSnapshot:{};
   const b=s.breakdown&&typeof s.breakdown==="object"?s.breakdown:{};
+  const score=finiteScore(s.score),priceTransparency=text(s.priceTransparency||"unknown",30);
   return{
     provenance:"client-supplied-unverified-context",
     evidence,
-    accessSnapshot:{score:finiteScore(s.score),breakdown:{communication:finiteScore(b.communication),booking:finiteScore(b.booking),eligibility:finiteScore(b.eligibility),cost:finiteScore(b.cost)},priceTransparency:text(s.priceTransparency||"unknown",30)},
+    accessSnapshot:{score,scoreBand:scoreBand(score),breakdown:{communication:finiteScore(b.communication),booking:finiteScore(b.booking),eligibility:finiteScore(b.eligibility),cost:finiteScore(b.cost)},priceTransparency},
     disclaimer:"Access matching context only; source URLs and verification labels are client-supplied context for partner re-checking, not clinical quality or medical advice."
   };
 }
@@ -40,14 +45,20 @@ function routingTags(lead){
   if(c.language!=="all")tags.push(`language:${c.language}`);
   if(c.coordinator!=="all")tags.push(`coordinator:${c.coordinator}`);
   if(c.referral!=="all")tags.push(`referral:${c.referral}`);
+  if(lead.finderContext.area)tags.push(`area:${lead.finderContext.area.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,80)}`);
+  if(lead.finderContext.verifiedOnly)tags.push("finder:provider-source-checked-only");
   if(lead.providerContext&&lead.providerContext.evidence.length){
     tags.push("provider-context:present");
     if(lead.providerContext.evidence.some(e=>e.status==="official-source-verified"))tags.push("provider-evidence:official-source-verified");
     if(lead.providerContext.evidence.some(e=>e.sourceUrl))tags.push("provider-evidence:source-link-present");
   }
+  if(lead.providerContext?.accessSnapshot?.scoreBand)tags.push(`access-friction:${lead.providerContext.accessSnapshot.scoreBand}`);
+  const pt=lead.providerContext?.accessSnapshot?.priceTransparency;
+  if(pt&&pt!=="unknown")tags.push(`price-transparency:${pt}`);
   return tags;
 }
 function signedHeaders(body,id){const secret=process.env.PARTNER_WEBHOOK_SECRET;if(!secret)return{};const timestamp=Math.floor(Date.now()/1000).toString();const signature=crypto.createHmac("sha256",secret).update(`${timestamp}.${body}`).digest("hex");return{"X-Japan-Health-Timestamp":timestamp,"X-Japan-Health-Signature":`sha256=${signature}`,"X-Request-Id":id};}
+async function postPartner(endpoint,destination,lead,id,signal){const event={event:"qualified_healthcare_lead",schemaVersion:SCHEMA_VERSION,platform:"japan-health",destination,lead:{...lead,partnerRoute:destination}},body=JSON.stringify(event);const r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json","User-Agent":`Japan-Health-Lead-Handoff/${SCHEMA_VERSION}`,"X-Request-Id":id,"X-Japan-Health-Schema":SCHEMA_VERSION,...signedHeaders(body,id)},body,signal});if(!r.ok)throw new Error(`Partner webhook returned ${r.status}`);return{destination};}
 module.exports=async function handler(req,res){
   res.setHeader("Cache-Control","no-store");res.setHeader("Allow","POST");
   if(req.method!=="POST")return res.status(405).json({error:"Method not allowed"});
@@ -60,14 +71,17 @@ module.exports=async function handler(req,res){
   const rawConstraints=b.accessConstraints&&typeof b.accessConstraints==="object"?b.accessConstraints:{};
   const accessConstraints={query:text(rawConstraints.q,300),audience:enumValue(rawConstraints.audience,ALLOWED.audience,"unknown"),city:text(rawConstraints.city||"all",100),language:enumValue(rawConstraints.language,ALLOWED.language,"all"),coordinator:enumValue(rawConstraints.coordinator,ALLOWED.coordinator,"all"),referral:enumValue(rawConstraints.referral,ALLOWED.referral,"all")};
   const id=requestId();res.setHeader("X-Request-Id",id);
-  const amecaWebhook=process.env.AMECA_LEAD_WEBHOOK_URL,fallbackWebhook=process.env.GENERAL_PARTNER_WEBHOOK_URL,endpoint=amecaWebhook||fallbackWebhook;
-  const destination=amecaWebhook?"ameca":fallbackWebhook?"general-partner":"unconfigured";
-  const lead={schemaVersion:"2.4",requestId:id,name,email,audience:enumValue(b.audience,ALLOWED.audience,"unknown"),city:text(b.city||"unknown",100),need:text(b.need,500),notes:text(b.notes,5000),timeframe:enumValue(b.timeframe,ALLOWED.timeframe,"flexible"),contactPreference:enumValue(b.contactPreference,ALLOWED.contactPreference,"email"),providerSelection:b.providerId||b.providerName?{id:b.providerId?text(b.providerId,150):null,name:b.providerName?text(b.providerName,300):null,provenance:"client-supplied-unverified-context"}:null,providerContext:sanitizeProviderContext(b.providerContext),sourcePage:text(b.sourcePage,500),partnerRoute:destination,accessConstraints,consentScope:"coordination-inquiry-partner-sharing",consentRecorded:true,consentRecordedAt:new Date().toISOString(),createdAt:new Date().toISOString()};
+  const sourcePage=sanitizeSourcePage(b.sourcePage),pageContext=finderContext(sourcePage);
+  const lead={schemaVersion:SCHEMA_VERSION,requestId:id,name,email,audience:enumValue(b.audience,ALLOWED.audience,"unknown"),city:text(b.city||"unknown",100),need:text(b.need,500),notes:text(b.notes,5000),timeframe:enumValue(b.timeframe,ALLOWED.timeframe,"flexible"),contactPreference:enumValue(b.contactPreference,ALLOWED.contactPreference,"email"),providerSelection:b.providerId||b.providerName?{id:b.providerId?text(b.providerId,150):null,name:b.providerName?text(b.providerName,300):null,provenance:"client-supplied-unverified-context"}:null,providerContext:sanitizeProviderContext(b.providerContext),sourcePage,finderContext:pageContext,partnerRoute:"unconfigured",accessConstraints,consentScope:"coordination-inquiry-partner-sharing",consentRecorded:true,consentRecordedAt:new Date().toISOString(),createdAt:new Date().toISOString()};
   lead.routingTags=routingTags(lead);
+  const amecaWebhook=process.env.AMECA_LEAD_WEBHOOK_URL,fallbackWebhook=process.env.GENERAL_PARTNER_WEBHOOK_URL;
   const allowDemoLeads=String(process.env.ALLOW_DEMO_LEADS||"").toLowerCase()==="true";
-  if(!endpoint){if(allowDemoLeads){console.log("DEMO QUALIFIED LEAD",{requestId:id,audience:lead.audience,city:lead.city,need:lead.need,timeframe:lead.timeframe,contactPreference:lead.contactPreference,providerSelection:lead.providerSelection&&lead.providerSelection.id,accessConstraints:lead.accessConstraints,routingTags:lead.routingTags});return res.status(200).json({ok:true,forwarded:false,demo:true,requestId:id});}res.setHeader("Retry-After","300");return res.status(503).json({error:"Coordinator handoff is temporarily unavailable. Please try again later.",requestId:id});}
+  if(!amecaWebhook&&!fallbackWebhook){if(allowDemoLeads){console.log("DEMO QUALIFIED LEAD",{requestId:id,audience:lead.audience,city:lead.city,need:lead.need,timeframe:lead.timeframe,contactPreference:lead.contactPreference,providerSelection:lead.providerSelection&&lead.providerSelection.id,accessConstraints:lead.accessConstraints,finderContext:lead.finderContext,routingTags:lead.routingTags});return res.status(200).json({ok:true,forwarded:false,demo:true,requestId:id});}res.setHeader("Retry-After","300");return res.status(503).json({error:"Coordinator handoff is temporarily unavailable. Please try again later.",requestId:id});}
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);
-  try{const event={event:"qualified_healthcare_lead",schemaVersion:"2.4",platform:"japan-health",destination,lead},body=JSON.stringify(event);const r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json","User-Agent":"Japan-Health-Lead-Handoff/2.4","X-Request-Id":id,"X-Japan-Health-Schema":"2.4",...signedHeaders(body,id)},body,signal:controller.signal});if(!r.ok)throw new Error(`Partner webhook returned ${r.status}`);return res.status(200).json({ok:true,forwarded:true,requestId:id});}
-  catch(e){console.error("PARTNER HANDOFF FAILED",{requestId:id,destination,message:e&&e.message?e.message:"unknown"});return res.status(502).json({error:"Coordinator handoff failed. Please try again later.",requestId:id});}
+  try{
+    if(amecaWebhook){try{const sent=await postPartner(amecaWebhook,"ameca",lead,id,controller.signal);return res.status(200).json({ok:true,forwarded:true,destination:sent.destination,requestId:id});}catch(e){console.error("AMECA HANDOFF FAILED",{requestId:id,message:e&&e.message?e.message:"unknown"});if(!fallbackWebhook||fallbackWebhook===amecaWebhook)throw e;}}
+    if(fallbackWebhook){const sent=await postPartner(fallbackWebhook,"general-partner",lead,id,controller.signal);return res.status(200).json({ok:true,forwarded:true,destination:sent.destination,requestId:id});}
+    throw new Error("No partner endpoint available");
+  }catch(e){console.error("PARTNER HANDOFF FAILED",{requestId:id,message:e&&e.message?e.message:"unknown"});return res.status(502).json({error:"Coordinator handoff failed. Please try again later.",requestId:id});}
   finally{clearTimeout(timeout);}
 };
