@@ -32,6 +32,8 @@ jobs:
           node --check demo-polish.js
           node --check demo-continuity.js
           node --check demo-access-guard.js
+          node --check demo-access-score.js
+          node --check demo-handoff-summary.js
           node --check home-featured.js
           node --check data/providers.js
           node --check data/tokyo-english-directory.js
@@ -150,6 +152,14 @@ jobs:
           grep -Fq 'does not silently relax it' demo-polish.js
           grep -Fq 'aria-live' demo-polish.js
           grep -Fq '/demo-continuity.js' demo-polish.js
+          grep -Fq '/demo-access-score.js' demo-polish.js
+          grep -Fq '/demo-handoff-summary.js' demo-polish.js
+          grep -Fq 'INTERNATIONAL ACCESS SCORE' demo-access-score.js
+          grep -Fq 'Same 40/25/20/15 weighting' demo-access-score.js
+          grep -Fq 'not clinical quality' demo-access-score.js
+          grep -Fq 'PORTABLE ACCESS SUMMARY' demo-handoff-summary.js
+          grep -Fq 'AMECA can remain a placeholder' demo-handoff-summary.js
+          grep -Fq 'does not diagnose' demo-handoff-summary.js
           grep -Fq 'Why these results appear in this order' demo-continuity.js
           grep -Fq 'journey","medical-travel' demo-continuity.js
           grep -Fq 'ACTIONABLE NEXT STEP' demo-continuity.js
