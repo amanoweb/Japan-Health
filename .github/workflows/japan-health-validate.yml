@@ -28,6 +28,7 @@ jobs:
           node --check service-booking-filters.js
           node --check booking-readiness.js
           node --check specialist-handoff.js
+          node --check demo-app.js
           node --check data/providers.js
           node --check data/tokyo-english-directory.js
           node --check data/tokyo-verified-clinics.js
@@ -128,3 +129,11 @@ jobs:
           grep -Fq 'journey-audience-context' trust-controls.js
           grep -Fq 'setJourneyAudience' trust-controls.js
           grep -Fq 'syncLeadAudience' trust-controls.js
+          grep -Fq 'PRESENTATION FLOW' demo.html
+          grep -Fq 'STEP 1 · PATIENT CONTEXT' demo.html
+          grep -Fq 'STEP 5 · NEXT STEP' demo.html
+          grep -Fq 'Demo provider records are not real recommendations' demo.html
+          grep -Fq '<script src="/demo-app.js"></script>' demo.html
+          grep -Fq 'Major medical travel' demo-app.js
+          grep -Fq 'Results are ordered by access-evidence fit for this demo, never clinical quality.' demo-app.js
+          grep -Fq 'AMECA can remain the placeholder downstream destination for the demo.' demo-app.js
