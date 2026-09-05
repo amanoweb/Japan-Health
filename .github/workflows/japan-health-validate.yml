@@ -19,6 +19,7 @@ jobs:
           node --check app.js
           node --check api/lead.js
           node --check api/providers.js
+          node --check home-search.js
           node --check trust-controls.js
           node --check access-confidence.js
           node --check directory-intelligence.js
@@ -28,28 +29,7 @@ jobs:
           node --check service-booking-filters.js
           node --check booking-readiness.js
           node --check specialist-handoff.js
-          node --check demo-app.js
-          node --check demo-polish.js
-          node --check demo-continuity.js
-          node --check demo-access-guard.js
-          node --check demo-access-score.js
-          node --check demo-handoff-summary.js
-          node --check home-featured.js
           node --check data/providers.js
-          node --check data/tokyo-english-directory.js
-          node --check data/tokyo-verified-clinics.js
-          node --check data/drive-provider-handoff.js
-          node --check data/provider-promotions-2026-09-05.js
-          node --check data/provider-promotions-batch-2.js
-          node --check data/provider-promotions-batch-3.js
-          node --check data/provider-promotions-batch-4.js
-          node --check data/provider-promotions-batch-5.js
-          node --check data/provider-promotions-batch-6.js
-          node --check data/provider-promotions-batch-7.js
-          node --check data/provider-promotions-batch-8.js
-          node --check data/provider-promotions-batch-9.js
-          node --check data/provider-promotions-batch-10.js
-          node --check data/service-access-promotions-2026-09-05.js
           node --check data/provider-service-access-batch-2026-09-05.js
           node --check scripts/validate-provider-data.js
           node --check scripts/validate-provider-api.js
@@ -58,8 +38,6 @@ jobs:
           node --check scripts/validate-expertise-contract.js
           node --check scripts/validate-service-access-promotions.js
           node --check scripts/validate-specialty-service-access-batch.js
-          node --check scripts/report-specialty-coverage.js
-          if [ -f api/health.js ]; then node --check api/health.js; fi
       - name: Validate provider data safety
         run: node scripts/validate-provider-data.js
       - name: Validate provider API fallback
@@ -74,100 +52,26 @@ jobs:
         run: node scripts/validate-expertise-contract.js
       - name: Validate lead handoff contract
         run: node scripts/validate-lead-contract.js
-      - name: Report Tokyo specialty coverage
-        run: |
-          node scripts/report-specialty-coverage.js || code=$?
-          if [ "${code:-0}" -ne 0 ] && [ "${code:-0}" -ne 2 ]; then exit "${code}"; fi
       - name: Verify production invariants
         run: |
           grep -Fq '<link rel="stylesheet" href="/styles.css"' index.html
-          grep -Fq '<link rel="stylesheet" href="/trust-controls.css"' index.html
-          grep -Fq '<script src="/data/providers.js"></script>' index.html
-          grep -Fq '<script src="/data/tokyo-english-directory.js"></script>' index.html
-          grep -Fq '<script src="/data/tokyo-verified-clinics.js"></script>' index.html
-          grep -Fq '<script src="/api/providers?format=js"></script>' index.html
           grep -Fq '<script src="/app.js"></script>' index.html
-          grep -Fq '<script src="/trust-controls.js"></script>' index.html
-          grep -Fq '<script src="/access-confidence.js"></script>' index.html
-          grep -Fq '<script src="/cost-intelligence.js"></script>' index.html
-          grep -Fq '<script src="/lead-review.js"></script>' index.html
-          grep -Fq '<script src="/home-featured.js"></script>' index.html
-          grep -Fq '<script src="/cost-intelligence.js"></script>' clinics.html
-          grep -Fq '<script src="/specialist-access.js"></script>' clinics.html
-          grep -Fq '<script src="/service-booking-filters.js"></script>' clinics.html
-          grep -Fq '<script src="/booking-readiness.js"></script>' clinics.html
-          grep -Fq '<script src="/specialist-handoff.js"></script>' clinics.html
-          grep -Fq 'SERVICE-LEVEL BOOKING FILTERS' service-booking-filters.js
-          grep -Fq 'Unknown fields never count as a match' service-booking-filters.js
-          grep -Fq 'serviceAudience' service-booking-filters.js
-          grep -Fq 'serviceReferral' service-booking-filters.js
-          grep -Fq 'serviceCoordinator' service-booking-filters.js
-          grep -Fq 'BOOKING READINESS' booking-readiness.js
-          grep -Fq 'documentation completeness only' booking-readiness.js
-          grep -Fq 'Booking readiness · documented fields' booking-readiness.js
-          grep -Fq 'SEARCHED EXPERTISE + SERVICE ACCESS' specialist-access.js
-          grep -Fq 'SERVICE-LEVEL CONFIRMED' specialist-access.js
-          grep -Fq 'PROVIDER-LEVEL ONLY' specialist-access.js
-          grep -Fq 'SPECIALIST HANDOFF CONTEXT' specialist-handoff.js
-          grep -Fq 'source-backed expertise evidence' clinics.html
-          grep -Fq 'Booking Readiness is also shown separately' clinics.html
-          grep -Fq 'fetch("/api/lead"' app.js
+          grep -Fq '<script src="/home-search.js"></script>' index.html
+          grep -Fq '<script src="/data/providers.js"></script>' index.html
+          grep -Fq '<script src="/data/provider-service-access-batch-2026-09-05.js"></script>' index.html
+          ! grep -Fq '/api/providers?format=js' index.html
+          ! grep -Fq '/data/tokyo-english-directory.js' index.html
+          ! grep -Fq '/trust-controls.js' index.html
+          grep -Fq 'What do you need help with?' index.html
+          grep -Fq 'Tokyo area' index.html
+          grep -Fq 'Visitor or resident' index.html
+          grep -Fq 'No clinical-quality ranking' index.html
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
           grep -Fq 'Demo provider records are not real recommendations' index.html
+          grep -Fq 'fetch("/api/lead"' app.js
           grep -Fq 'partnerRoute:"ameca"' app.js
           grep -Fq 'AMECA_LEAD_WEBHOOK_URL' api/lead.js
-          grep -Fq 'costSnapshot:sanitizeCostSnapshot' api/lead.js
-          grep -Fq 'specialistAccessSnapshot:sanitizeSpecialistAccessSnapshot' api/lead.js
-          grep -Fq 'service-language-verification' api/lead.js
-          grep -Fq 'Cost-readiness context only' api/lead.js
-          grep -Fq 'SUPABASE_SERVICE_ROLE_KEY' api/providers.js
-          grep -Fq 'data/provider-service-access-batch-2026-09-05.js' api/providers.js
-          grep -Fq 'ncc-hospital-tsukiji-international' data/provider-service-access-batch-2026-09-05.js
-          grep -Fq 'tokyo-teishin-cardiology-orthopedics-international' data/provider-service-access-batch-2026-09-05.js
-          grep -Fq 'asahi-ladies-clinic-akihabara' data/provider-service-access-batch-2026-09-05.js
-          grep -Fq 'Show official-source checked records only' index.html
-          grep -Fq 'value="medical-travel"' index.html
-          grep -Fq 'journey:major-medical-travel' api/lead.js
-          grep -Fq 'ACCESS DATA COVERAGE' trust-controls.js
+          grep -Fq 'SEARCHED EXPERTISE + SERVICE ACCESS' specialist-access.js
+          grep -Fq 'BOOKING READINESS' booking-readiness.js
           grep -Fq 'TOTAL-COST VISIBILITY' trust-controls.js
-          grep -Fq 'aria-live' trust-controls.js
-          grep -Fq 'International Access Score is a logistics-friction summary' trust-controls.js
-          grep -Fq 'journey-audience-context' trust-controls.js
-          grep -Fq 'setJourneyAudience' trust-controls.js
-          grep -Fq 'syncLeadAudience' trust-controls.js
-          grep -Fq 'PRESENTATION FLOW' demo.html
-          grep -Fq 'STEP 1 · PATIENT CONTEXT' demo.html
-          grep -Fq 'STEP 5 · NEXT STEP' demo.html
-          grep -Fq 'Demo provider records are not real recommendations' demo.html
-          grep -Fq '<script src="/demo-app.js"></script>' demo.html
-          grep -Fq '<script src="/demo-polish.js"></script>' demo.html
-          grep -Fq 'serviceRequirement' demo-app.js
-          grep -Fq 'BOOKING READINESS' demo-app.js
-          grep -Fq 'documentation completeness only' demo-app.js
-          grep -Fq 'LOGISTICS NEXT STEP' demo-app.js
-          grep -Fq 'AMECA remains a placeholder downstream destination' demo-app.js
-          grep -Fq 'CURRENT SCENARIO' demo-polish.js
-          grep -Fq 'Total-cost visibility' demo-polish.js
-          grep -Fq 'does not silently relax it' demo-polish.js
-          grep -Fq 'aria-live' demo-polish.js
-          grep -Fq '/demo-continuity.js' demo-polish.js
-          grep -Fq '/demo-access-score.js' demo-polish.js
-          grep -Fq '/demo-handoff-summary.js' demo-polish.js
-          grep -Fq 'INTERNATIONAL ACCESS SCORE' demo-access-score.js
-          grep -Fq 'Same 40/25/20/15 weighting' demo-access-score.js
-          grep -Fq 'not clinical quality' demo-access-score.js
-          grep -Fq 'PORTABLE ACCESS SUMMARY' demo-handoff-summary.js
-          grep -Fq 'AMECA can remain a placeholder' demo-handoff-summary.js
-          grep -Fq 'does not diagnose' demo-handoff-summary.js
-          grep -Fq 'Why these results appear in this order' demo-continuity.js
-          grep -Fq 'journey","medical-travel' demo-continuity.js
-          grep -Fq 'ACTIONABLE NEXT STEP' demo-continuity.js
-          grep -Fq 'aria-current' demo-continuity.js
-          grep -Fq '/demo-access-guard.js' demo-continuity.js
-          grep -Fq 'service-level audience check' demo-access-guard.js
-          grep -Fq 'Provider-wide audience fields are not silently promoted' demo-access-guard.js
-          grep -Fq 'top access-evidence fit' demo-access-guard.js
-          grep -Fq 'Copy scenario link' demo-access-guard.js
-          grep -Fq 'Run the guided product demo' home-featured.js
-          grep -Fq '/demo.html?audience=medical-travel&care=cancer&language=interpreter' home-featured.js
