@@ -30,6 +30,7 @@ jobs:
           node --check data/provider-promotions-batch-3.js
           node --check scripts/validate-provider-data.js
           node --check scripts/validate-provider-api.js
+          node --check scripts/validate-drive-provider-handoff.js
           node --check scripts/validate-lead-contract.js
           node --check scripts/validate-expertise-contract.js
           if [ -f api/health.js ]; then node --check api/health.js; fi
@@ -37,6 +38,8 @@ jobs:
         run: node scripts/validate-provider-data.js
       - name: Validate provider API fallback
         run: node scripts/validate-provider-api.js
+      - name: Validate Drive provider handoff completeness
+        run: node scripts/validate-drive-provider-handoff.js
       - name: Validate typed expertise evidence
         run: node scripts/validate-expertise-contract.js
       - name: Validate lead handoff contract
