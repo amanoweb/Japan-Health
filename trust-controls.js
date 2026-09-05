@@ -218,7 +218,7 @@
   });
   new MutationObserver(()=>queueMicrotask(annotateAndFilter)).observe(grid,{childList:true});
   const detail=document.getElementById("providerDetail");
-  if(detail)new MutationObserver(()=>queueMicrotask(neutralizeDirectoryDetail)).observe(detail,{childList:true,subtree:true});
+  if(detail)new MutationObserver(()=>queueMicrotask(neutralizeDirectoryDetail)).observe(detail,{childList:true});
   injectConsumerEntry();
   injectCoordinatorDirectory();
   injectMobileCta();
