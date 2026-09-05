@@ -14,7 +14,8 @@ const STATIC_PROVIDER_FILES=[
   "data/provider-promotions-batch-4.js",
   "data/provider-promotions-batch-5.js",
   "data/provider-promotions-batch-6.js",
-  "data/provider-promotions-batch-7.js"
+  "data/provider-promotions-batch-7.js",
+  "data/provider-promotions-batch-8.js"
 ];
 
 function validProvider(p){
@@ -52,14 +53,7 @@ async function loadCloudProviders(){
   const base=(process.env.SUPABASE_URL||"").replace(/\/$/,"");
   const key=process.env.SUPABASE_SERVICE_ROLE_KEY||"";
   if(!base||!key)return null;
-
-  const response=await fetch(`${base}/rest/v1/providers?select=id,data,updated_at&active=eq.true&order=id.asc`,{
-    headers:{
-      apikey:key,
-      Authorization:`Bearer ${key}`,
-      Accept:"application/json"
-    }
-  });
+  const response=await fetch(`${base}/rest/v1/providers?select=id,data,updated_at&active=eq.true&order=id.asc`,{headers:{apikey:key,Authorization:`Bearer ${key}`,Accept:"application/json"}});
   if(!response.ok)throw new Error(`Provider database request failed (${response.status})`);
   const rows=await response.json();
   const providers=dedupeProviders(rows.map(row=>row?.data));
@@ -68,70 +62,20 @@ async function loadCloudProviders(){
   return {providers,updatedAt};
 }
 
-function mergeProviderSources(cloudProviders,staticProviders){
-  // GitHub japan-health is the product source of truth. Cloud-only rows are retained,
-  // but the checked-in static/promoted record wins on duplicate id or normalized name.
-  return dedupeProviders([...(cloudProviders||[]),...(staticProviders||[])]);
-}
-
-function buildEtag(providers,source,updatedAt=""){
-  // Hash the displayed provider payload, not only ids, so evidence/price/access edits
-  // invalidate browser/CDN caches even when the provider roster itself is unchanged.
-  const fingerprint=JSON.stringify({source,updatedAt,providers});
-  return `\"${crypto.createHash("sha256").update(fingerprint).digest("hex").slice(0,24)}\"`;
-}
-
-function send(res,status,body,contentType,etag){
-  res.statusCode=status;
-  if(contentType)res.setHeader("Content-Type",contentType);
-  res.setHeader("Cache-Control","public, max-age=60, s-maxage=300, stale-while-revalidate=86400");
-  if(etag)res.setHeader("ETag",etag);
-  res.end(body||"");
-}
+function mergeProviderSources(cloudProviders,staticProviders){return dedupeProviders([...(cloudProviders||[]),...(staticProviders||[])]);}
+function buildEtag(providers,source,updatedAt=""){const fingerprint=JSON.stringify({source,updatedAt,providers});return `\"${crypto.createHash("sha256").update(fingerprint).digest("hex").slice(0,24)}\"`;}
+function send(res,status,body,contentType,etag){res.statusCode=status;if(contentType)res.setHeader("Content-Type",contentType);res.setHeader("Cache-Control","public, max-age=60, s-maxage=300, stale-while-revalidate=86400");if(etag)res.setHeader("ETag",etag);res.end(body||"");}
 
 module.exports=async function handler(req,res){
-  if(req.method!=="GET"){
-    res.setHeader("Allow","GET");
-    return send(res,405,JSON.stringify({error:"Method not allowed"}),"application/json; charset=utf-8");
-  }
-
-  let staticProviders;
-  try{staticProviders=loadStaticProviders();}
-  catch(err){
-    return send(res,500,JSON.stringify({error:"Provider data unavailable"}),"application/json; charset=utf-8");
-  }
-
+  if(req.method!=="GET"){res.setHeader("Allow","GET");return send(res,405,JSON.stringify({error:"Method not allowed"}),"application/json; charset=utf-8");}
+  let staticProviders;try{staticProviders=loadStaticProviders();}catch(err){return send(res,500,JSON.stringify({error:"Provider data unavailable"}),"application/json; charset=utf-8");}
   let providers=staticProviders,source="static-fallback",cloudError=null,updatedAt="";
-  try{
-    const cloud=await loadCloudProviders();
-    if(cloud){
-      providers=mergeProviderSources(cloud.providers,staticProviders);
-      updatedAt=cloud.updatedAt;
-      source="supabase+github";
-    }
-  }catch(err){
-    cloudError=err.message;
-  }
-
+  try{const cloud=await loadCloudProviders();if(cloud){providers=mergeProviderSources(cloud.providers,staticProviders);updatedAt=cloud.updatedAt;source="supabase+github";}}catch(err){cloudError=err.message;}
   const etag=buildEtag(providers,source,updatedAt);
   const requestEtag=req.headers?.["if-none-match"]||req.headers?.["If-None-Match"];
   if(requestEtag===etag)return send(res,304,"",null,etag);
-
-  const meta={
-    source,
-    count:providers.length,
-    cloudConfigured:Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY),
-    githubSourceOfTruth:true,
-    dataVersion:etag.replaceAll('"',''),
-    updatedAt:updatedAt||null
-  };
+  const meta={source,count:providers.length,cloudConfigured:Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY),githubSourceOfTruth:true,dataVersion:etag.replaceAll('"',''),updatedAt:updatedAt||null};
   const url=new URL(req.url||"/api/providers","http://localhost");
-  if(url.searchParams.get("format")==="js"){
-    const js=`window.PROVIDERS=${JSON.stringify(providers)};window.JAPAN_HEALTH_DATA_META=${JSON.stringify(meta)};`;
-    return send(res,200,js,"application/javascript; charset=utf-8",etag);
-  }
-
-  const payload={providers,meta};
-  if(cloudError&&process.env.NODE_ENV!=="production")payload.meta.cloudError=cloudError;
-  return send(res,200,JSON.stringify(payload),"application/json; charset=utf-8",etag);
+  if(url.searchParams.get("format")==="js"){const js=`window.PROVIDERS=${JSON.stringify(providers)};window.JAPAN_HEALTH_DATA_META=${JSON.stringify(meta)};`;return send(res,200,js,"application/javascript; charset=utf-8",etag);}
+  const payload={providers,meta};if(cloudError&&process.env.NODE_ENV!=="production")payload.meta.cloudError=cloudError;return send(res,200,JSON.stringify(payload),"application/json; charset=utf-8",etag);
 };
