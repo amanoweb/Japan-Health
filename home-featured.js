@@ -7,9 +7,9 @@
   const prev=document.getElementById("featuredPrev"),next=document.getElementById("featuredNext");const move=dir=>root.scrollBy({left:root.clientWidth*.8*dir,behavior:"smooth"});if(prev)prev.onclick=()=>move(-1);if(next)next.onclick=()=>move(1);
   const heroActions=document.querySelector(".hero-actions");if(heroActions&&!heroActions.querySelector('[data-guided-demo-entry]')){const demo=document.createElement("a");demo.className="btn dark";demo.href="/demo.html?audience=resident&care=cardiology&language=interpreter&area=Chiyoda&scenario=resident-cardiology";demo.dataset.guidedDemoEntry="true";demo.textContent="Run the guided product demo";heroActions.appendChild(demo);}
   const journeyLinks=[
-    ["visitor","/demo.html?audience=medical-travel&care=cancer&language=interpreter&area=Chuo&scenario=visitor-cancer","Try cancer access demo"],
+    ["visitor","/demo.html?audience=visitor&care=general&scenario=visitor-general","Try visitor care demo"],
     ["resident","/demo.html?audience=resident&care=cardiology&language=interpreter&area=Chiyoda&scenario=resident-cardiology","Try resident cardiology demo"],
-    ["medical-travel","/demo.html?audience=medical-travel&care=cancer&language=interpreter&area=Chuo&scenario=visitor-cancer","Try medical-travel demo"]
+    ["medical-travel","/demo.html?audience=medical-travel&care=cancer&language=interpreter&area=Chuo&scenario=medical-travel-cancer","Try medical-travel demo"]
   ];
   journeyLinks.forEach(([id,href,label])=>{const card=document.getElementById(id);if(!card||card.querySelector('[data-journey-demo]'))return;const a=document.createElement("a");a.href=href;a.className="small-btn";a.dataset.journeyDemo="true";a.textContent=label;const actions=card.querySelector(".journey-actions")||card;actions.appendChild(a);});
 })();
