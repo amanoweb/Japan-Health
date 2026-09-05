@@ -7,6 +7,7 @@ const sandbox={window:{}};
 vm.runInNewContext(code,sandbox,{filename:"data/providers.js"});
 const providers=sandbox.window.PROVIDERS;
 const allowed=new Set(schema.properties.type.enum);
+const serviceRoutes=new Set(schema.properties.serviceAccess.properties.route.enum);
 const errors=[];
 
 for(const [i,p] of providers.entries()){
@@ -25,6 +26,23 @@ for(const [i,p] of providers.entries()){
       if(!/^https:\/\//i.test(String(e.sourceUrl||"")))errors.push(`${ew}: verified evidence needs an https sourceUrl`);
       if(!/^\d{4}-\d{2}-\d{2}$/.test(String(e.verifiedDate||"")))errors.push(`${ew}: verified evidence needs YYYY-MM-DD verifiedDate`);
     }
+    if(e.serviceAccess!==undefined){
+      const a=e.serviceAccess,aw=`${ew} serviceAccess`;
+      if(!a||typeof a!=="object"||Array.isArray(a)){errors.push(`${aw}: must be an object`)}
+      else{
+        if(!serviceRoutes.has(a.route))errors.push(`${aw}: unsupported route ${a.route}`);
+        if(!["demo","official-source-verified"].includes(a.evidenceStatus))errors.push(`${aw}: evidenceStatus must be demo or official-source-verified`);
+        if(demo&&a.evidenceStatus!=="demo")errors.push(`${aw}: demo provider service access must stay demo`);
+        if(!demo&&a.evidenceStatus==="demo")errors.push(`${aw}: verified provider cannot use demo service access evidence`);
+        if(a.evidenceStatus==="official-source-verified"){
+          if(!/^https:\/\//i.test(String(a.sourceUrl||"")))errors.push(`${aw}: verified service access needs an https sourceUrl`);
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(String(a.verifiedDate||"")))errors.push(`${aw}: verified service access needs YYYY-MM-DD verifiedDate`);
+        }
+        for(const forbidden of ["qualityScore","qualityRank","outcomeScore","bestProvider","recommendedTreatment"]){
+          if(Object.prototype.hasOwnProperty.call(a,forbidden))errors.push(`${aw}: ${forbidden} is not allowed in service access evidence`);
+        }
+      }
+    }
     for(const forbidden of ["qualityScore","qualityRank","outcomeScore","bestProvider","recommendedTreatment"]){
       if(Object.prototype.hasOwnProperty.call(e,forbidden))errors.push(`${ew}: ${forbidden} is not allowed in expertise evidence`);
     }
@@ -35,4 +53,4 @@ if(errors.length){
   console.error("Expertise contract validation failed:\n- "+errors.join("\n- "));
   process.exit(1);
 }
-console.log(`Expertise contract validation passed for ${providers.length} provider records.`);
+console.log(`Expertise contract validation passed for ${providers.length} provider records, including optional service-level access evidence.`);
