@@ -41,11 +41,14 @@ jobs:
           node --check data/provider-promotions-batch-9.js
           node --check data/provider-promotions-batch-10.js
           node --check data/service-access-promotions-2026-09-05.js
+          node --check data/provider-service-access-batch-2026-09-05.js
           node --check scripts/validate-provider-data.js
           node --check scripts/validate-provider-api.js
           node --check scripts/validate-drive-provider-handoff.js
           node --check scripts/validate-lead-contract.js
           node --check scripts/validate-expertise-contract.js
+          node --check scripts/validate-service-access-promotions.js
+          node --check scripts/validate-specialty-service-access-batch.js
           node --check scripts/report-specialty-coverage.js
           if [ -f api/health.js ]; then node --check api/health.js; fi
       - name: Validate provider data safety
@@ -53,25 +56,9 @@ jobs:
       - name: Validate provider API fallback
         run: node scripts/validate-provider-api.js
       - name: Validate service-level access promotions
-        run: |
-          node - <<'NODE'
-          const api=require('./api/providers.js');
-          const req={method:'GET',url:'/api/providers'};
-          let body='';
-          const res={statusCode:200,headers:{},setHeader(k,v){this.headers[k]=v},end(v){body=v||''}};
-          Promise.resolve(api(req,res)).then(()=>{
-            if(res.statusCode!==200)throw new Error(`provider API ${res.statusCode}`);
-            const payload=JSON.parse(body),providers=payload.providers||[];
-            const jihs=providers.find(p=>p.id==='jihs-center-hospital-icc');
-            const second=(jihs?.expertiseEvidence||[]).find(e=>e.type==='second_opinion'&&/online second opinion/i.test(e.label||''));
-            if(second?.serviceAccess?.route!=='interpreter'||second?.serviceAccess?.evidenceStatus!=='official-source-verified')throw new Error('JIHS second-opinion service access promotion missing');
-            const ut=providers.find(p=>p.id==='utokyo-international-neurology');
-            if(ut?.interpreter!=='available'||ut?.englishDocs!=='yes')throw new Error('UTokyo international access promotion missing');
-            const pd=(ut?.expertiseEvidence||[]).find(e=>/Parkinson/i.test(e.label||''));
-            if(pd?.serviceAccess)throw new Error('Parkinson specialist evidence must remain provider-level only until service-specific access is sourced');
-            console.log('Service-level access promotions validated');
-          }).catch(err=>{console.error(err);process.exit(1)});
-          NODE
+        run: node scripts/validate-service-access-promotions.js
+      - name: Validate specialty service-access batch
+        run: node scripts/validate-specialty-service-access-batch.js
       - name: Validate Drive provider handoff completeness
         run: node scripts/validate-drive-provider-handoff.js
       - name: Validate typed expertise evidence
@@ -98,7 +85,6 @@ jobs:
           grep -Fq '<script src="/cost-intelligence.js"></script>' clinics.html
           grep -Fq '<script src="/specialist-access.js"></script>' clinics.html
           grep -Fq '<script src="/specialist-handoff.js"></script>' clinics.html
-          grep -Fq 'data/service-access-promotions-2026-09-05.js' api/providers.js
           grep -Fq 'SEARCHED EXPERTISE + SERVICE ACCESS' specialist-access.js
           grep -Fq 'SERVICE-LEVEL CONFIRMED' specialist-access.js
           grep -Fq 'PROVIDER-LEVEL ONLY' specialist-access.js
@@ -115,6 +101,10 @@ jobs:
           grep -Fq 'service-language-verification' api/lead.js
           grep -Fq 'Cost-readiness context only' api/lead.js
           grep -Fq 'SUPABASE_SERVICE_ROLE_KEY' api/providers.js
+          grep -Fq 'data/provider-service-access-batch-2026-09-05.js' api/providers.js
+          grep -Fq 'ncc-hospital-tsukiji-international' data/provider-service-access-batch-2026-09-05.js
+          grep -Fq 'tokyo-teishin-cardiology-orthopedics-international' data/provider-service-access-batch-2026-09-05.js
+          grep -Fq 'asahi-ladies-clinic-akihabara' data/provider-service-access-batch-2026-09-05.js
           grep -Fq 'Show official-source checked records only' index.html
           grep -Fq 'value="medical-travel"' index.html
           grep -Fq 'journey:major-medical-travel' api/lead.js
