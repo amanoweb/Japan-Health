@@ -9,7 +9,8 @@ const STATIC_PROVIDER_FILES=[
   "data/tokyo-verified-clinics.js",
   "data/drive-provider-handoff.js",
   "data/provider-promotions-2026-09-05.js",
-  "data/provider-promotions-batch-2.js"
+  "data/provider-promotions-batch-2.js",
+  "data/provider-promotions-batch-3.js"
 ];
 
 function validProvider(p){
