@@ -29,6 +29,7 @@ jobs:
           node --check demo-handoff-summary.js
           node --check demo-scenarios.js
           node --check demo-inquiry.js
+          node --check demo-handoff-review.js
           node --check demo-journey-guidance.js
           node --check demo-mobile-comparison.js
       - name: Verify production and demo invariants
@@ -45,6 +46,7 @@ jobs:
           grep -Fq '/demo-evidence-intelligence.js' demo-polish.js
           grep -Fq '/demo-decision-transparency.js' demo-polish.js
           grep -Fq '/demo-handoff-readiness.js' demo-polish.js
+          grep -Fq '/demo-handoff-review.js' demo-polish.js
           grep -Fq '/demo-journey-guidance.js' demo-polish.js
           grep -Fq '/demo-mobile-comparison.js' demo-polish.js
           grep -Fq 'SEARCHED EXPERTISE EVIDENCE' demo-evidence-intelligence.js
@@ -65,6 +67,10 @@ jobs:
           grep -Fq 'aria-expanded' demo-mobile-comparison.js
           grep -Fq 'HANDOFF READINESS PACKET' demo-handoff-readiness.js
           grep -Fq 'Structured logistics context only' demo-handoff-readiness.js
+          grep -Fq 'HANDOFF REVIEW' demo-handoff-review.js
+          grep -Fq 'VERIFY BEFORE BOOKING' demo-handoff-review.js
+          grep -Fq 'Copy share-safe brief' demo-handoff-review.js
+          grep -Fq 'AMECA remains only a downstream partner placeholder' demo-handoff-review.js
           grep -Fq 'AMECA remains only a downstream placeholder' demo-inquiry.js
           grep -Fq 'accessSnapshot:accessSnapshot(p)' demo-inquiry.js
           grep -Fq 'area:s.area' demo-inquiry.js

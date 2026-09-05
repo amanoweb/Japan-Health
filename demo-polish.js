@@ -36,6 +36,7 @@
       ["/demo-handoff-summary.js","demo-handoff-summary"],
       ["/demo-scenarios.js","demo-scenarios"],
       ["/demo-inquiry.js","demo-inquiry"],
+      ["/demo-handoff-review.js","demo-handoff-review"],
       ["/demo-journey-guidance.js","demo-journey-guidance"],
       ["/demo-mobile-comparison.js","demo-mobile-comparison"]
     ];
