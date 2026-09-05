@@ -14,7 +14,7 @@
     const href=directoryHref();
     document.querySelectorAll('a[href^="/clinics.html"]').forEach(a=>{
       if(a.closest("header")||a.textContent.trim()==="Open directory")return;
-      a.href=href;
+      if(a.getAttribute("href")!==href)a.setAttribute("href",href);
       a.dataset.demoScenarioPreserved="1";
       if(!a.title)a.title="Open the full directory with this demo scenario preserved";
     });
