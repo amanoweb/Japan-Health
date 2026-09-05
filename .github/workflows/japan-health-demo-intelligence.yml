@@ -20,10 +20,13 @@ jobs:
           node --check api/lead.js
           node --check demo-app.js
           node --check demo-polish.js
+          node --check demo-continuity.js
+          node --check demo-access-guard.js
           node --check demo-access-score.js
           node --check demo-evidence-intelligence.js
           node --check demo-handoff-readiness.js
           node --check demo-handoff-summary.js
+          node --check demo-scenarios.js
           node --check demo-inquiry.js
       - name: Verify production and demo invariants
         run: |
@@ -34,6 +37,8 @@ jobs:
           grep -Fq 'does not diagnose' index.html
           grep -Fq 'Demo provider records are not real recommendations' index.html
           grep -Fq 'Demo provider records are not real recommendations' demo.html
+          grep -Fq 'for(const [src,key] of modules)await loadModule(src,key)' demo-polish.js
+          grep -Fq 'aria-pressed' demo-polish.js
           grep -Fq '/demo-evidence-intelligence.js' demo-polish.js
           grep -Fq '/demo-handoff-readiness.js' demo-polish.js
           grep -Fq 'SEARCHED EXPERTISE EVIDENCE' demo-evidence-intelligence.js
@@ -41,4 +46,7 @@ jobs:
           grep -Fq 'HANDOFF READINESS PACKET' demo-handoff-readiness.js
           grep -Fq 'Structured logistics context only' demo-handoff-readiness.js
           grep -Fq 'AMECA remains only a downstream placeholder' demo-inquiry.js
+          grep -Fq 'accessSnapshot:accessSnapshot(p)' demo-inquiry.js
+          grep -Fq 'area:s.area' demo-inquiry.js
+          grep -Fq 'dataset.submitting' demo-inquiry.js
           grep -Fq 'fetch("/api/lead"' demo-inquiry.js
