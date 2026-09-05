@@ -31,6 +31,15 @@
         "official-source-verified"
       ]
     },
+    "verificationLevel": {
+      "type": "string",
+      "description": "Trust tier for the source used to verify the access record. Government-directory means directory discovery only; provider-official means the provider's own official source was reviewed. This field does not imply clinical quality.",
+      "enum": [
+        "demo",
+        "government-directory",
+        "provider-official"
+      ]
+    },
     "doctorEnglish": {
       "type": "string",
       "enum": [
