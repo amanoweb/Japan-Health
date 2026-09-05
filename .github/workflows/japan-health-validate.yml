@@ -2,9 +2,9 @@ name: Japan Health validation
 
 on:
   push:
-    branches: [japan-health]
+    branches: [main]
   pull_request:
-    branches: [japan-health]
+    branches: [main]
 
 jobs:
   validate:
