@@ -1,6 +1,6 @@
 # Japan Health Access Platform MVP
 
-This branch contains the consumer-facing **Japan Health** MVP for international patients in Japan. AMECA is a downstream fulfillment/coordination partner, not the public brand.
+This repository is the canonical source for the consumer-facing **Japan Health** MVP for international patients in Japan. AMECA is a downstream fulfillment/coordination partner, not the public brand.
 
 ## Differentiation
 - actual access intelligence, not only "English available"
@@ -16,8 +16,8 @@ This branch contains the consumer-facing **Japan Health** MVP for international 
 ## Partner handoff
 `POST /api/lead` forwards qualified leads to `AMECA_LEAD_WEBHOOK_URL`, falling back to `GENERAL_PARTNER_WEBHOOK_URL`.
 
-## Important
-All current provider records are illustrative UX examples. Do not publish them as factual provider claims. Real records must be grounded in official sources and include a verification date.
+## Data policy
+Provider records may include demo, government-directory, and provider-level verified entries. Demo records must remain visibly labeled. Government-directory listings must not be treated as proof of physician English, reception English, insurance eligibility, visitor eligibility, interpreter support, prices, or current acceptance. Provider-level claims must be grounded in official sources and include verification metadata. Unknown fields stay unknown.
 
-## Autonomous branch
-This is the `japan-health` branch. The default `main` branch remains the separate FDA Readiness AI project. Do not merge the two products accidentally.
+## Canonical branch
+`main` is the production/source-of-truth branch for Japan Health. The former FDA Readiness AI main branch was removed from production and preserved only in the temporary safety branch `archive/fda-old-main` during repository cleanup. `backup/japan-health-pre-cleanup` preserves the Japan Health state immediately before the cleanup.
