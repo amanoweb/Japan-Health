@@ -20,6 +20,7 @@ jobs:
           node --check api/lead.js
           node --check api/providers.js
           node --check home-search.js
+          node --check home-product-polish.js
           node --check trust-controls.js
           node --check access-confidence.js
           node --check directory-intelligence.js
@@ -76,6 +77,12 @@ jobs:
           grep -Fq 'Search all Tokyo instead' home-search.js
           grep -Fq 'International Access Score uses communication 40%' home-search.js
           grep -Fq 'Open verification gaps:' home-search.js
+          grep -Fq '/home-product-polish.js' home-search.js
+          grep -Fq "['ginza','Chuo']" home-product-polish.js
+          grep -Fq "['roppongi','Minato']" home-product-polish.js
+          grep -Fq 'BOOKING READINESS' home-product-polish.js
+          grep -Fq 'access rules documented' home-product-polish.js
+          grep -Fq 'Next access step:' home-product-polish.js
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
           grep -Fq 'Demo provider records are not real recommendations' index.html
