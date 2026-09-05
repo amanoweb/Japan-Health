@@ -7,11 +7,29 @@ const STATIC_PROVIDER_FILES=[
   "data/providers.js",
   "data/tokyo-english-directory.js",
   "data/tokyo-verified-clinics.js",
-  "data/drive-provider-handoff.js"
+  "data/drive-provider-handoff.js",
+  "data/provider-promotions-2026-09-05.js"
 ];
 
 function validProvider(p){
   return p&&typeof p==="object"&&typeof p.id==="string"&&typeof p.name==="string";
+}
+
+function normalizeName(value){
+  return String(value||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+}
+
+function dedupeProviders(providers){
+  const byId=new Map();
+  const nameToId=new Map();
+  for(const p of providers.filter(validProvider)){
+    const nameKey=normalizeName(p.name);
+    const conflictingId=nameToId.get(nameKey);
+    if(conflictingId&&conflictingId!==p.id)byId.delete(conflictingId);
+    byId.set(p.id,p);
+    if(nameKey)nameToId.set(nameKey,p.id);
+  }
+  return [...byId.values()];
 }
 
 function loadStaticProviders(){
@@ -21,7 +39,7 @@ function loadStaticProviders(){
     const source=fs.readFileSync(filePath,"utf8");
     vm.runInNewContext(source,sandbox,{filename:relativePath,timeout:1000});
   }
-  return (sandbox.window.PROVIDERS||[]).filter(validProvider);
+  return dedupeProviders(sandbox.window.PROVIDERS||[]);
 }
 
 async function loadCloudProviders(){
@@ -38,7 +56,7 @@ async function loadCloudProviders(){
   });
   if(!response.ok)throw new Error(`Provider database request failed (${response.status})`);
   const rows=await response.json();
-  const providers=rows.map(row=>row?.data).filter(validProvider);
+  const providers=dedupeProviders(rows.map(row=>row?.data));
   if(!providers.length)throw new Error("Provider database returned no usable records");
   const updatedAt=rows.reduce((latest,row)=>row?.updated_at&&row.updated_at>latest?row.updated_at:latest,"");
   return {providers,updatedAt};
