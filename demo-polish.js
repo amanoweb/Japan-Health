@@ -31,6 +31,7 @@
       ["/demo-access-guard.js","demo-access-guard"],
       ["/demo-access-score.js","demo-access-score"],
       ["/demo-evidence-intelligence.js","demo-evidence-intelligence"],
+      ["/demo-decision-transparency.js","demo-decision-transparency"],
       ["/demo-handoff-readiness.js","demo-handoff-readiness"],
       ["/demo-handoff-summary.js","demo-handoff-summary"],
       ["/demo-scenarios.js","demo-scenarios"],
