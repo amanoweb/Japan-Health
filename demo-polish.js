@@ -13,11 +13,37 @@
   function decorateCosts(){document.querySelectorAll("#demoResults .demo-provider").forEach(card=>{card.querySelector(".demo-cost-readiness")?.remove();const p=providerByCard(card);if(!p)return;const c=costReadiness(p);const el=document.createElement("div");el.className="match demo-cost-readiness";el.textContent=`Total-cost visibility ${c.recorded}/${c.total} components recorded`;el.title="Medical, interpreter and coordinator cost fields recorded in the current provider record. This is data completeness, not a quote.";card.querySelector(".match-list")?.appendChild(el);});}
   function recovery(){const grid=$("demoResults");if(!grid)return;const empty=grid.querySelector(".demo-warning");if(!empty||grid.querySelector(".demo-recovery"))return;const box=document.createElement("div");box.className="demo-recovery";box.innerHTML='<b>Keep the scenario moving without pretending there is a match.</b><span>These buttons explicitly change the selected constraint; Japan Health does not silently relax it.</span><div><button type="button" class="small-btn" data-relax="area">Use any Tokyo area</button><button type="button" class="small-btn" data-relax="language">Use any documented language pathway</button><a class="small-btn primary" href="/clinics.html">Open full directory</a></div>';empty.appendChild(box);box.querySelectorAll("[data-relax]").forEach(btn=>btn.addEventListener("click",()=>{const target=btn.dataset.relax==="area"?$("demoArea"):$("demoLanguage");if(!target)return;target.value="all";target.dispatchEvent(new Event("input",{bubbles:true}));target.dispatchEvent(new Event("change",{bubbles:true}));$("showResults")?.click();}));}
   function focusCurrentPanel(){const panel=[...document.querySelectorAll(".demo-panel")].find(x=>!x.classList.contains("hidden-step"));const h=panel?.querySelector("h2");if(!h||h.dataset.demoFocusReady)return;h.dataset.demoFocusReady="1";h.setAttribute("tabindex","-1");h.focus({preventScroll:true});}
-  function loadModule(src,key){if(document.querySelector(`script[data-${key}]`))return;const s=document.createElement("script");s.src=src;s.defer=true;s.setAttribute(`data-${key}`,"1");document.head.appendChild(s);}
-  function ensureDemoModules(){loadModule("/demo-continuity.js","demo-continuity");loadModule("/demo-access-score.js","demo-access-score");loadModule("/demo-evidence-intelligence.js","demo-evidence-intelligence");loadModule("/demo-handoff-readiness.js","demo-handoff-readiness");loadModule("/demo-handoff-summary.js","demo-handoff-summary");loadModule("/demo-scenarios.js","demo-scenarios");loadModule("/demo-inquiry.js","demo-inquiry");}
-  function refresh(){renderScenario();decorateCosts();recovery();}
+  function decorateChoices(){
+    document.querySelectorAll(".choice[data-audience],.choice[data-care]").forEach(btn=>{
+      btn.setAttribute("type","button");
+      btn.setAttribute("aria-pressed",btn.classList.contains("selected")?"true":"false");
+    });
+    const steps=$("demoSteps");if(steps&&!steps.getAttribute("aria-label"))steps.setAttribute("aria-label","Guided demo progress");
+  }
+  function loadModule(src,key){
+    const existing=document.querySelector(`script[data-${key}]`);
+    if(existing)return existing.dataset.loaded==="1"?Promise.resolve():new Promise(resolve=>existing.addEventListener("load",resolve,{once:true}));
+    return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=src;s.async=false;s.setAttribute(`data-${key}`,"1");s.addEventListener("load",()=>{s.dataset.loaded="1";resolve();},{once:true});s.addEventListener("error",()=>reject(new Error(`Could not load ${src}`)),{once:true});document.head.appendChild(s);});
+  }
+  async function ensureDemoModules(){
+    const modules=[
+      ["/demo-continuity.js","demo-continuity"],
+      ["/demo-access-guard.js","demo-access-guard"],
+      ["/demo-access-score.js","demo-access-score"],
+      ["/demo-evidence-intelligence.js","demo-evidence-intelligence"],
+      ["/demo-handoff-readiness.js","demo-handoff-readiness"],
+      ["/demo-handoff-summary.js","demo-handoff-summary"],
+      ["/demo-scenarios.js","demo-scenarios"],
+      ["/demo-inquiry.js","demo-inquiry"]
+    ];
+    for(const [src,key] of modules)await loadModule(src,key);
+    document.documentElement.dataset.demoModulesReady="1";
+  }
+  function refresh(){renderScenario();decorateCosts();recovery();decorateChoices();}
   const nativeReplace=history.replaceState.bind(history);history.replaceState=(...args)=>{const r=nativeReplace(...args);queueMicrotask(refresh);return r;};
   const observer=new MutationObserver(()=>requestAnimationFrame(()=>{refresh();focusCurrentPanel();}));[$("demoResults"),document.querySelector("main")].filter(Boolean).forEach(el=>observer.observe(el,{childList:true,subtree:true,attributes:true,attributeFilter:["class"]}));
-  const style=document.createElement("style");style.id="demo-polish-styles";style.textContent=`.demo-scenario-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:11px 13px;border:1px solid #dce6ef;border-radius:13px;background:#fff}.demo-scenario-bar small,.demo-scenario-bar b,.demo-scenario-bar span{display:block}.demo-scenario-bar small{font-size:7px;font-weight:900;letter-spacing:.06em;color:#718295}.demo-scenario-bar b{font-size:10px;color:#173c5f;margin:2px 0}.demo-scenario-bar span{font-size:8px;color:#607487}.demo-cost-readiness{background:#eef6ff;color:#245f9d}.demo-recovery{display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #ead7ad}.demo-recovery>b,.demo-recovery>span{display:block}.demo-recovery>span{font-size:8px}.demo-recovery>div{display:flex;flex-wrap:wrap;gap:7px}@media(max-width:600px){.demo-scenario-bar{align-items:stretch;flex-direction:column}.demo-scenario-bar .small-btn{width:100%;text-align:center}.demo-recovery>div{display:grid}.demo-recovery .small-btn{width:100%;text-align:center}}`;
-  document.head.appendChild(style);ensureDemoModules();document.addEventListener("click",()=>queueMicrotask(refresh));refresh();
+  const style=document.createElement("style");style.id="demo-polish-styles";style.textContent=`.demo-scenario-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:11px 13px;border:1px solid #dce6ef;border-radius:13px;background:#fff}.demo-scenario-bar small,.demo-scenario-bar b,.demo-scenario-bar span{display:block}.demo-scenario-bar small{font-size:7px;font-weight:900;letter-spacing:.06em;color:#718295}.demo-scenario-bar b{font-size:10px;color:#173c5f;margin:2px 0}.demo-scenario-bar span{font-size:8px;color:#607487}.demo-cost-readiness{background:#eef6ff;color:#245f9d}.demo-recovery{display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #ead7ad}.demo-recovery>b,.demo-recovery>span{display:block}.demo-recovery>span{font-size:8px}.demo-recovery>div{display:flex;flex-wrap:wrap;gap:7px}.choice:focus-visible,.small-btn:focus-visible,.btn:focus-visible,.nav a:focus-visible{outline:3px solid rgba(23,109,240,.35);outline-offset:3px}@media(max-width:600px){.demo-scenario-bar{align-items:stretch;flex-direction:column}.demo-scenario-bar .small-btn{width:100%;text-align:center}.demo-recovery>div{display:grid}.demo-recovery .small-btn{width:100%;text-align:center}}`;
+  document.head.appendChild(style);
+  ensureDemoModules().catch(err=>{console.error(err);document.documentElement.dataset.demoModulesReady="error";});
+  document.addEventListener("click",()=>queueMicrotask(refresh));refresh();
 })();
