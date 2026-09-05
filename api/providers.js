@@ -10,7 +10,8 @@ const STATIC_PROVIDER_FILES=[
   "data/drive-provider-handoff.js",
   "data/provider-promotions-2026-09-05.js",
   "data/provider-promotions-batch-2.js",
-  "data/provider-promotions-batch-3.js"
+  "data/provider-promotions-batch-3.js",
+  "data/provider-promotions-batch-4.js"
 ];
 
 function validProvider(p){
