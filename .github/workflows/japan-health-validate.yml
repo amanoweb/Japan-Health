@@ -24,6 +24,8 @@ jobs:
           node --check directory-intelligence.js
           node --check cost-intelligence.js
           node --check lead-review.js
+          node --check specialist-access.js
+          node --check specialist-handoff.js
           node --check data/providers.js
           node --check data/tokyo-english-directory.js
           node --check data/tokyo-verified-clinics.js
@@ -73,6 +75,11 @@ jobs:
           grep -Fq '<script src="/cost-intelligence.js"></script>' index.html
           grep -Fq '<script src="/lead-review.js"></script>' index.html
           grep -Fq '<script src="/cost-intelligence.js"></script>' clinics.html
+          grep -Fq '<script src="/specialist-access.js"></script>' clinics.html
+          grep -Fq '<script src="/specialist-handoff.js"></script>' clinics.html
+          grep -Fq 'SEARCHED EXPERTISE + ACCESS' specialist-access.js
+          grep -Fq 'SPECIALIST HANDOFF CONTEXT' specialist-handoff.js
+          grep -Fq 'source-backed expertise evidence' clinics.html
           grep -Fq 'fetch("/api/lead"' app.js
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
