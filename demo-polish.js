@@ -36,7 +36,8 @@
       ["/demo-handoff-summary.js","demo-handoff-summary"],
       ["/demo-scenarios.js","demo-scenarios"],
       ["/demo-inquiry.js","demo-inquiry"],
-      ["/demo-journey-guidance.js","demo-journey-guidance"]
+      ["/demo-journey-guidance.js","demo-journey-guidance"],
+      ["/demo-mobile-comparison.js","demo-mobile-comparison"]
     ];
     for(const [src,key] of modules)await loadModule(src,key);
     document.documentElement.dataset.demoModulesReady="1";
