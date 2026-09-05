@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tokyo Clinic Directory | Japan Health</title>
+<meta name="description" content="Browse Tokyo healthcare providers by specialty, location and documented international-access constraints."/>
+<link rel="stylesheet" href="/styles.css"/>
+<link rel="stylesheet" href="/trust-controls.css"/>
+<link rel="stylesheet" href="/multi-page.css"/>
+</head>
+<body>
+<div class="prototype">VALIDATION MVP — official-source checked records are labeled; demo records remain illustrative and unverified</div>
+<header class="nav">
+  <a class="brand" href="/"><span class="mark">J</span><span><b>Japan Health</b><small>Tokyo healthcare access</small></span></a>
+  <nav><a href="/">Home</a><a class="page-nav-active" href="/clinics.html">Clinics</a><a href="/#medical-travel">Medical travel</a><a href="/#ai">Ask AI</a></nav>
+  <a class="nav-cta" href="/">Back home</a>
+</header>
+<main class="directory-page">
+  <div class="directory-intro"><div><div class="eyebrow dark">TOKYO CLINIC DIRECTORY</div><h1>Browse all Tokyo care options.</h1><p>Search and filter the full directory here. Results are shown 12 at a time. Access scores summarize international-access friction only and do not rank clinical quality, outcomes or physician skill.</p></div><a class="btn ghost" href="/">← Home</a></div>
+  <section class="finder" id="find">
+    <div class="finder-head"><div><div class="eyebrow dark">FILTER CARE</div><h2>Search by specialty, provider or Tokyo area.</h2><p>Official-source checked records are mixed with clearly labeled demo records. “Checked” means the cited source supported the displayed fact on the check date; it does not guarantee current acceptance, availability or clinical quality.</p><p class="finder-scope-note"><span class="tokyo-source-count" id="tokyoDirectoryCount">Tokyo provider data loading…</span></p></div><button id="resetFilters" class="text-btn">Reset filters</button></div>
+    <div class="filters">
+      <input id="q" aria-label="Search Tokyo care" placeholder="Search specialty, provider or Tokyo area"/>
+      <select id="audience"><option value="all">Visitor + Resident</option><option value="resident">Residents</option><option value="visitor">Visitors</option></select>
+      <select id="city"><option value="Tokyo" selected>Tokyo</option><option value="all">All cities</option><option value="Osaka">Osaka</option></select>
+      <select id="language"><option value="all">Any documented language pathway</option><option value="direct">Verified physician English only</option><option value="interpreter">Verified interpreter support</option></select>
+      <select id="coord"><option value="all">Any booking path</option><option value="required">Coordinator required</option><option value="not-required">No confirmed coordinator requirement</option></select>
+      <select id="referral"><option value="all">Any referral rule</option><option value="required">Referral required</option><option value="no">No referral required</option></select>
+    </div>
+    <div class="source-warning">Tokyo baseline records only claim what the cited source supports. Physician-level English, reception English, interpretation, insurance, self-pay status, referrals, current availability and exact prices remain “unknown” unless a more specific official source supports them.</div>
+    <div class="trust-controls" aria-label="Source verification controls"><label class="trust-toggle"><input id="verifiedOnly" type="checkbox"/> Show official-source checked records only</label><p id="verificationSummary" class="verification-summary" aria-live="polite">Verification status will appear after results load.</p></div>
+    <div class="results-bar"><b id="resultCount">0 options</b><span>Compare access evidence, not clinical quality.</span></div>
+    <div id="providerGrid" class="provider-grid"></div>
+    <div class="pagination" id="pagination" aria-label="Clinic result pages"><button id="pagePrev" type="button">← Previous</button><span class="pagination-status" id="pageStatus" aria-live="polite"></span><button id="pageNext" type="button">Next →</button></div>
+  </section>
+</main>
+<footer><div class="brand"><span class="mark">J</span><span><b>Japan Health</b><small>Tokyo validation product</small></span></div><p>Discovery and coordination only. This platform does not diagnose, provide medical advice, rank clinical quality, or guarantee provider language ability, eligibility, pricing, availability or outcomes. Demo provider records are not real recommendations.</p></footer>
+<div class="modal hidden" id="providerModal"><div class="modal-box"><button class="close" aria-label="Close provider details" onclick="closeProviderModal()">×</button><div id="providerDetail"></div></div></div>
+<div class="modal hidden" id="leadModal"><div class="modal-box lead-box"><button class="close" aria-label="Close coordinator form" onclick="closeLeadModal()">×</button><span class="mini">COORDINATOR HANDOFF</span><h2>Tell us what you're looking for.</h2><p class="muted">We’ll package the inquiry for a Japan-based coordination partner when appropriate. This is not medical advice.</p><form id="leadForm"><input id="leadProvider" type="hidden"/><div class="grid2"><label>Name<input id="leadName" autocomplete="name" required/></label><label>Email<input id="leadEmail" type="email" autocomplete="email" required/></label></div><div class="grid2"><label>I am<select id="leadAudience"><option value="visitor">Visiting Tokyo</option><option value="resident">Living in Tokyo</option><option value="medical-travel">Traveling specifically for major medical care</option></select></label><label>City<select id="leadCity"><option>Tokyo</option><option>Osaka</option></select></label></div><label>What kind of care?<input id="leadNeed" placeholder="e.g. Health screening, dental care, specialist second opinion"/></label><label>Additional context<textarea id="leadNotes" placeholder="Relevant logistics or what you want help arranging. Avoid unnecessary sensitive health data in this demo."></textarea></label><label class="consent"><input id="leadConsent" type="checkbox" required/><span>I understand this is a coordination inquiry, not a diagnosis or medical recommendation.</span></label><button class="btn primary full" type="submit">Send inquiry</button><div id="leadStatus" class="lead-status"></div></form></div></div>
+<div class="home-hidden-runtime" aria-hidden="true"><div id="chatLog"></div><form id="chatForm"><input id="chatInput"/></form></div>
+<script src="/data/providers.js"></script>
+<script src="/data/tokyo-english-directory.js"></script>
+<script src="/data/tokyo-verified-clinics.js"></script>
+<script src="/api/providers?format=js"></script>
+<script src="/app.js"></script>
+<script src="/trust-controls.js"></script>
+<script src="/access-confidence.js"></script>
+<script src="/clinics-pagination.js"></script>
+<script>document.addEventListener('DOMContentLoaded',()=>{const m=window.TOKYO_ENGLISH_DIRECTORY_META,p=window.TOKYO_PROVIDER_LEVEL_META,c=document.getElementById('tokyoDirectoryCount');if(m&&c)c.textContent=`${m.importedRows} Tokyo official-list English records${p?` + ${p.count} provider-level verified clinic profiles`:''}`;});</script>
+</body></html>
