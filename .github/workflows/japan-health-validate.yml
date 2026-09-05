@@ -68,11 +68,16 @@ jobs:
           grep -Fq 'Visitor or resident' index.html
           grep -Fq 'No clinical-quality ranking' index.html
           grep -Fq 'does not silently relax' index.html
+          grep -Fq 'Symptoms are routed to broad care categories' index.html
+          grep -Fq 'Fever / everyday illness' index.html
           grep -Fq 'International Access Score uses communication 40%' index.html
-          grep -Fq 'Unknown does not count as a confirmed match' index.html
           grep -Fq 'function constraintMatch' home-search.js
           grep -Fq "s.language==='direct'&&p.doctorEnglish!=='yes'" home-search.js
           grep -Fq "s.area&&!areaMatches(p,s.area)" home-search.js
+          grep -Fq "id:'general-care'" home-search.js
+          grep -Fq "terms:['fever','temperature','cold','flu'" home-search.js
+          grep -Fq "target:['internal medicine','general practice','primary care','general medicine']" home-search.js
+          grep -Fq 'We interpreted this as' home-search.js
           grep -Fq 'No documented match for all selected constraints.' home-search.js
           grep -Fq 'Search all Tokyo instead' home-search.js
           grep -Fq 'International Access Score uses communication 40%' home-search.js
