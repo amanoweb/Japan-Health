@@ -121,3 +121,5 @@
   document.querySelectorAll('[data-quick]').forEach(b=>b.addEventListener('click',()=>{$("careQuery").value=b.dataset.quick;sync();render();$("results").scrollIntoView({behavior:'smooth',block:'start'})}));
   if($("careQuery").value.trim())render();
 })();
+
+(()=>{const s=document.createElement('script');s.src='/home-product-polish.js';s.defer=true;document.body.appendChild(s)})();
