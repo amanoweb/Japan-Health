@@ -30,6 +30,7 @@ jobs:
           node --check specialist-handoff.js
           node --check demo-app.js
           node --check demo-polish.js
+          node --check demo-continuity.js
           node --check home-featured.js
           node --check data/providers.js
           node --check data/tokyo-english-directory.js
@@ -147,5 +148,10 @@ jobs:
           grep -Fq 'Total-cost visibility' demo-polish.js
           grep -Fq 'does not silently relax it' demo-polish.js
           grep -Fq 'aria-live' demo-polish.js
+          grep -Fq '/demo-continuity.js' demo-polish.js
+          grep -Fq 'Why these results appear in this order' demo-continuity.js
+          grep -Fq 'journey","medical-travel' demo-continuity.js
+          grep -Fq 'ACTIONABLE NEXT STEP' demo-continuity.js
+          grep -Fq 'aria-current' demo-continuity.js
           grep -Fq 'Run the guided product demo' home-featured.js
           grep -Fq '/demo.html?audience=medical-travel&care=cancer&language=interpreter' home-featured.js
