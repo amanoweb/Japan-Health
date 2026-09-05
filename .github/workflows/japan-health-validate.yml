@@ -24,6 +24,8 @@ jobs:
           node --check data/providers.js
           node --check data/tokyo-english-directory.js
           node --check data/tokyo-verified-clinics.js
+          node --check data/drive-provider-handoff.js
+          node --check data/provider-promotions-2026-09-05.js
           node --check scripts/validate-provider-data.js
           node --check scripts/validate-provider-api.js
           node --check scripts/validate-lead-contract.js
