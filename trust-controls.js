@@ -18,6 +18,86 @@
     return Math.max(0,Math.floor((Date.now()-checked.getTime())/86400000));
   };
 
+  const accessFields=[
+    ["doctorEnglish","doctor English"],["receptionEnglish","reception English"],["interpreter","interpreter pathway"],
+    ["referral","referral rule"],["coordinator","coordinator requirement"],["insurance","insurance pathway"],
+    ["selfPay","self-pay pathway"],["priceTransparency","price transparency"]
+  ];
+  const unresolvedAccessFacts=p=>accessFields.filter(([key])=>!p?.[key]||p[key]==="unknown").map(([,label])=>label);
+  const accessCoverage=p=>{
+    const unresolved=unresolvedAccessFacts(p);
+    return{known:accessFields.length-unresolved.length,total:accessFields.length,unresolved};
+  };
+  const unresolvedCostComponents=p=>[
+    ["medicalCost","medical total"],["interpreterCost","interpreter cost"],["coordinatorCost","coordinator cost"]
+  ].filter(([key])=>!p?.[key]||/^unknown$/i.test(String(p[key]))).map(([,label])=>label);
+
+  function injectTransparencyStyles(){
+    if(document.getElementById("jh-transparency-styles"))return;
+    const s=document.createElement("style");
+    s.id="jh-transparency-styles";
+    s.textContent=`.access-coverage,.cost-visibility{margin:9px 0;padding:9px 10px;border:1px solid #dfe7ef;border-radius:9px;background:#fbfcfe;font-size:8px;line-height:1.5;color:#5d7084}.access-coverage b,.cost-visibility b{display:block;font-size:9px;color:#34495e;margin-bottom:2px}.access-coverage span,.cost-visibility span{display:block}.access-coverage .coverage-warning{color:#7b5b24}.cost-visibility .cost-warning{color:#7b5b24}.provider-card[aria-label]{scroll-margin-top:90px}@media(max-width:650px){.access-coverage,.cost-visibility{font-size:9px}}`;
+    document.head.appendChild(s);
+  }
+
+  function coverageMarkup(provider){
+    const c=accessCoverage(provider);
+    const suffix=c.unresolved.length?`Still unverified: ${c.unresolved.join(", ")}.`:"All structured access fields in this record have a stated value.";
+    return `<div class="access-coverage"><b>ACCESS DATA COVERAGE · ${c.known}/${c.total} structured fields</b><span class="${c.unresolved.length?"coverage-warning":""}">${suffix}</span><span>The International Access Score is a logistics-friction summary, not a clinical-quality score; lower coverage means more uncertainty around the number.</span></div>`;
+  }
+
+  function costVisibilityMarkup(provider){
+    const published=Array.isArray(provider?.publishedCosts)?provider.publishedCosts.length:0;
+    const unresolved=unresolvedCostComponents(provider);
+    const publishedText=published?`${published} provider-published service fee${published===1?"":"s"} captured.`:"No provider-published service fee captured yet.";
+    const unresolvedText=unresolved.length?`Unresolved components: ${unresolved.join(", ")}.`:"Medical, interpreter and coordinator cost fields all have stated values.";
+    return `<div class="cost-visibility"><b>TOTAL-COST VISIBILITY</b><span>${publishedText}</span><span class="${unresolved.length?"cost-warning":""}">${unresolvedText}</span><span>Published service fees are examples from cited sources and are not a guaranteed total episode estimate.</span></div>`;
+  }
+
+  function addTransparency(card,provider){
+    if(!provider||isDirectoryOnly(provider))return;
+    if(!card.querySelector(".access-coverage")){
+      const score=card.querySelector(".score-breakdown")||card.querySelector(".score-row");
+      score?.insertAdjacentHTML("afterend",coverageMarkup(provider));
+    }
+    if(!card.querySelector(".cost-visibility")){
+      const cost=card.querySelector(".cost-grid");
+      cost?.insertAdjacentHTML("afterend",costVisibilityMarkup(provider));
+    }
+  }
+
+  function addDetailTransparency(detail,provider){
+    if(!detail||!provider||isDirectoryOnly(provider))return;
+    if(!detail.querySelector(".access-coverage")){
+      const breakdown=detail.querySelector(".score-breakdown");
+      breakdown?.insertAdjacentHTML("afterend",coverageMarkup(provider));
+    }
+    if(!detail.querySelector(".cost-visibility")){
+      const costHeading=[...detail.querySelectorAll("h3")].find(h=>h.textContent.trim()==="Cost visibility");
+      const costGrid=costHeading?.nextElementSibling;
+      costGrid?.insertAdjacentHTML("afterend",costVisibilityMarkup(provider));
+    }
+  }
+
+  function improveFinderA11y(){
+    const labels={
+      audience:"Patient pathway",city:"City",area:"Tokyo area",language:"Language access requirement",
+      coord:"Coordinator requirement",referral:"Referral requirement",sort:"Sort care options"
+    };
+    Object.entries(labels).forEach(([id,label])=>document.getElementById(id)?.setAttribute("aria-label",label));
+    const count=document.getElementById("resultCount");
+    if(count){count.setAttribute("role","status");count.setAttribute("aria-live","polite");count.setAttribute("aria-atomic","true");}
+    note?.setAttribute("aria-atomic","true");
+    grid.setAttribute("aria-label","Care finder results");
+    grid.querySelectorAll(".provider-card").forEach(card=>{
+      const name=card.querySelector("h3")?.textContent?.trim();
+      if(name)card.setAttribute("aria-label",`${name} access record`);
+      card.querySelectorAll("button").forEach(button=>{
+        if(name&&!button.getAttribute("aria-label"))button.setAttribute("aria-label",`${button.textContent.trim()} for ${name}`);
+      });
+    });
+  }
+
   let areaSelect=null;
 
   function setUrlState(){
@@ -94,6 +174,7 @@
       }
 
       neutralizeDirectoryScore(card,provider);
+      addTransparency(card,provider);
       applyAreaOrder(card,provider);
 
       const badge=card.querySelector(".record-state.verified");
@@ -116,6 +197,7 @@
         ?`Showing ${visible} provider-source checked option${visible===1?"":"s"} in ${areaText}. Directory-only discovery records are excluded; confirm current acceptance before booking.`
         :`${visible} option${visible===1?"":"s"} shown in ${areaText}; ${verifiedVisible} have provider-level source checks and ${directoryVisible} are directory-only discovery records. Unknown language roles are not treated as poor English.`;
     }
+    improveFinderA11y();
   }
 
   function syncToggle(){
@@ -157,6 +239,8 @@
     if(!detail)return;
     const name=detail.querySelector("h2")?.textContent?.trim();
     const provider=providers.find(p=>p.name===name);
+    if(!provider)return;
+    addDetailTransparency(detail,provider);
     if(!isDirectoryOnly(provider))return;
 
     const state=detail.querySelector(".record-state");
@@ -236,6 +320,7 @@
     document.body.appendChild(bar);
   }
 
+  injectTransparencyStyles();
   injectAreaControl();
   enhanceSort();
   toggle.addEventListener("change",syncToggle);
@@ -249,5 +334,6 @@
   injectConsumerEntry();
   injectCoordinatorDirectory();
   injectMobileCta();
+  improveFinderA11y();
   annotateAndFilter();
 })();
