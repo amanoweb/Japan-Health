@@ -29,6 +29,7 @@ jobs:
           node --check demo-handoff-summary.js
           node --check demo-scenarios.js
           node --check demo-inquiry.js
+          node --check demo-journey-guidance.js
       - name: Verify production and demo invariants
         run: |
           grep -Fq '<link rel="stylesheet" href="/styles.css"' index.html
@@ -43,6 +44,7 @@ jobs:
           grep -Fq '/demo-evidence-intelligence.js' demo-polish.js
           grep -Fq '/demo-decision-transparency.js' demo-polish.js
           grep -Fq '/demo-handoff-readiness.js' demo-polish.js
+          grep -Fq '/demo-journey-guidance.js' demo-polish.js
           grep -Fq 'SEARCHED EXPERTISE EVIDENCE' demo-evidence-intelligence.js
           grep -Fq 'Provider-wide specialties are not silently promoted' demo-evidence-intelligence.js
           grep -Fq 'APPLIED CONSTRAINTS' demo-decision-transparency.js
@@ -50,6 +52,9 @@ jobs:
           grep -Fq 'TOTAL-COST VISIBILITY' demo-decision-transparency.js
           grep -Fq 'OPEN VERIFICATION CHECKLIST' demo-decision-transparency.js
           grep -Fq 'AMECA remains only a downstream placeholder' demo-decision-transparency.js
+          grep -Fq 'ACCESS AT A GLANCE' demo-journey-guidance.js
+          grep -Fq 'Access logistics only — not clinical quality.' demo-journey-guidance.js
+          grep -Fq 'NEXT ACTION' demo-journey-guidance.js
           grep -Fq 'HANDOFF READINESS PACKET' demo-handoff-readiness.js
           grep -Fq 'Structured logistics context only' demo-handoff-readiness.js
           grep -Fq 'AMECA remains only a downstream placeholder' demo-inquiry.js
