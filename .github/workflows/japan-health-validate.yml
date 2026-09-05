@@ -81,3 +81,6 @@ jobs:
           grep -Fq 'TOTAL-COST VISIBILITY' trust-controls.js
           grep -Fq 'aria-live' trust-controls.js
           grep -Fq 'International Access Score is a logistics-friction summary' trust-controls.js
+          grep -Fq 'journey-audience-context' trust-controls.js
+          grep -Fq 'setJourneyAudience' trust-controls.js
+          grep -Fq 'syncLeadAudience' trust-controls.js
