@@ -67,3 +67,7 @@ jobs:
           grep -Fq 'Show official-source checked records only' index.html
           grep -Fq 'value="medical-travel"' index.html
           grep -Fq 'journey:major-medical-travel' api/lead.js
+          grep -Fq 'ACCESS DATA COVERAGE' trust-controls.js
+          grep -Fq 'TOTAL-COST VISIBILITY' trust-controls.js
+          grep -Fq 'aria-live' trust-controls.js
+          grep -Fq 'International Access Score is a logistics-friction summary' trust-controls.js
