@@ -77,7 +77,9 @@ jobs:
           grep -Fq '<script src="/cost-intelligence.js"></script>' clinics.html
           grep -Fq '<script src="/specialist-access.js"></script>' clinics.html
           grep -Fq '<script src="/specialist-handoff.js"></script>' clinics.html
-          grep -Fq 'SEARCHED EXPERTISE + ACCESS' specialist-access.js
+          grep -Fq 'SEARCHED EXPERTISE + SERVICE ACCESS' specialist-access.js
+          grep -Fq 'SERVICE-LEVEL CONFIRMED' specialist-access.js
+          grep -Fq 'PROVIDER-LEVEL ONLY' specialist-access.js
           grep -Fq 'SPECIALIST HANDOFF CONTEXT' specialist-handoff.js
           grep -Fq 'source-backed expertise evidence' clinics.html
           grep -Fq 'fetch("/api/lead"' app.js
@@ -87,6 +89,8 @@ jobs:
           grep -Fq 'partnerRoute:"ameca"' app.js
           grep -Fq 'AMECA_LEAD_WEBHOOK_URL' api/lead.js
           grep -Fq 'costSnapshot:sanitizeCostSnapshot' api/lead.js
+          grep -Fq 'specialistAccessSnapshot:sanitizeSpecialistAccessSnapshot' api/lead.js
+          grep -Fq 'service-language-verification' api/lead.js
           grep -Fq 'Cost-readiness context only' api/lead.js
           grep -Fq 'SUPABASE_SERVICE_ROLE_KEY' api/providers.js
           grep -Fq 'Show official-source checked records only' index.html
