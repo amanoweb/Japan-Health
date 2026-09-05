@@ -3,27 +3,28 @@
   const providers=()=>window.PROVIDERS||[];
   const normalize=v=>String(v||'').toLowerCase().trim();
   const topicMap=[
-    {terms:['tooth','teeth','dental','dentist'],target:['dentistry','dental']},
-    {terms:['heart','chest','cardio','arrhythmia','palpitation'],target:['cardiology','ischemic heart disease','arrhythmia','heart failure']},
-    {terms:['cancer','tumor','oncology','second opinion'],target:['oncology','cancer care','second opinion','rare cancer']},
-    {terms:['period','menstrual','gyne','gyn','women','ivf','fertility','infertility','contraception'],target:['gynecology','women\'s health','infertility','assisted reproductive technology','ivf','icsi']},
-    {terms:['parkinson','tremor','movement','neurology','nerve'],target:['neurology','parkinson\'s disease','movement disorders']},
-    {terms:['checkup','screening','physical','ningen'],target:['health screening','ningen dock','imaging']},
-    {terms:['fever','cold','cough','stomach','pain','internal','general','medicine'],target:['internal medicine','general practice']}
+    {id:'dental',label:'dental care',terms:['tooth','teeth','dental','dentist','toothache'],target:['dentistry','dental','emergency dental']},
+    {id:'cardiology',label:'cardiology',terms:['heart','chest','cardio','arrhythmia','palpitation','palpitations'],target:['cardiology','ischemic heart disease','arrhythmia','heart failure']},
+    {id:'oncology',label:'oncology / cancer care',terms:['cancer','tumor','tumour','oncology','second opinion'],target:['oncology','cancer care','second opinion','rare cancer']},
+    {id:'womens-health',label:"women's health",terms:['period','menstrual','gyne','gyn','women','ivf','fertility','infertility','contraception'],target:['gynecology',"women's health",'ob-gyn','infertility','assisted reproductive technology','ivf','icsi']},
+    {id:'neurology',label:'neurology',terms:['parkinson','tremor','movement','neurology','nerve'],target:['neurology',"parkinson's disease",'movement disorders']},
+    {id:'screening',label:'health screening',terms:['checkup','check-up','screening','physical','ningen'],target:['health screening','ningen dock','imaging']},
+    {id:'general-care',label:'general medical care',terms:['fever','temperature','cold','flu','influenza','cough','sore throat','stomach','stomachache','vomit','vomiting','diarrhea','diarrhoea','pain','internal','general','medicine','headache','dizzy','dizziness'],target:['internal medicine','general practice','primary care','general medicine']}
   ];
 
-  function topicTargets(q){
-    const n=normalize(q),out=[];
-    for(const group of topicMap)if(group.terms.some(t=>n.includes(t)))out.push(...group.target);
-    return [...new Set(out)];
+  function topicGroups(q){
+    const n=normalize(q);
+    return topicMap.filter(group=>group.terms.some(t=>n.includes(t)));
   }
+  function topicTargets(q){return [...new Set(topicGroups(q).flatMap(group=>group.target))]}
+  function routeLabel(q){const groups=topicGroups(q);return groups.length?groups.map(g=>g.label).join(' / '):''}
   function evidenceText(p){return (p.expertiseEvidence||[]).map(e=>typeof e==='string'?e:(e.label||e.name||'')).join(' ')}
   function providerHaystack(p){return normalize([p.name,p.area,(p.specialties||[]).join(' '),evidenceText(p),p.notes].join(' '))}
   function relevanceScore(p,query){
     if(!query)return 0;
     const hay=providerHaystack(p),q=normalize(query),targets=topicTargets(query);let relevance=0;
     if(hay.includes(q))relevance+=90;
-    for(const t of targets)if(hay.includes(normalize(t)))relevance+=35;
+    for(const t of targets)if(hay.includes(normalize(t)))relevance+=45;
     for(const token of q.split(/[^a-z0-9]+/).filter(x=>x.length>2))if(hay.includes(token))relevance+=6;
     return relevance;
   }
@@ -76,7 +77,9 @@
   }
   function whyMatched(p,s){
     const reasons=[];
-    if(relevanceScore(p,s.query)>0)reasons.push('Search terms found in specialty/evidence');
+    const routed=routeLabel(s.query);
+    if(routed&&relevanceScore(p,s.query)>0)reasons.push(`Symptom routed to ${routed}`);
+    else if(relevanceScore(p,s.query)>0)reasons.push('Search terms found in specialty/evidence');
     if(s.area&&areaMatches(p,s.area))reasons.push(`Area: ${p.area}`);
     if(s.audience!=='all'&&p.audience?.includes(s.audience))reasons.push(s.audience==='visitor'?'Visitor pathway documented':'Resident pathway documented');
     if(s.language==='direct'&&p.doctorEnglish==='yes')reasons.push('Direct physician English documented');
@@ -90,12 +93,14 @@
   }
   function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
   function render(){
-    const s=state(),grid=$("quickResults"),summary=$("searchSummary");
+    const s=state(),grid=$("quickResults"),summary=$("searchSummary"),routed=routeLabel(s.query);
     const candidates=providers().filter(p=>constraintMatch(p,s)).map(p=>({p,relevance:relevanceScore(p,s.query),rank:rankScore(p,s)})).filter(x=>!s.query||x.relevance>0).sort((a,b)=>b.rank-a.rank).slice(0,5);
-    summary.textContent=s.query?`${candidates.length} documented constraint match${candidates.length===1?'':'es'} for “${s.query}”${s.area?` in ${s.area}`:''}. Selected Visitor/Resident, area and communication constraints are hard filters; they are not silently relaxed.`:'Describe a symptom, care need, disease, or procedure to get started.';
+    const routeText=routed?` We interpreted this as ${routed} for access search only; this is not a diagnosis.`:'';
+    summary.textContent=s.query?`${candidates.length} documented constraint match${candidates.length===1?'':'es'} for “${s.query}”${s.area?` in ${s.area}`:''}.${routeText} Selected Visitor/Resident, area and communication constraints are hard filters; they are not silently relaxed.`:'Describe a symptom, care need, disease, or procedure to get started.';
     if(!candidates.length){
       const areaRecovery=s.area?'<button class="btn ghost" type="button" data-clear-area>Search all Tokyo instead</button>':'';
-      grid.innerHTML=`<div class="fast-empty"><b>No documented match for all selected constraints.</b><span>Japan Health will not silently relax Visitor/Resident, area, or communication requirements. Change a constraint explicitly or open the full directory.</span><div class="fast-actions">${areaRecovery}<a class="btn ghost" href="/clinics.html">Open full directory →</a></div></div>`;
+      const understood=routed?`We understood “${escapeHtml(s.query)}” as ${escapeHtml(routed)}, but no provider in the current dataset satisfies every selected constraint.`:'No current provider record matched the search terms and every selected constraint.';
+      grid.innerHTML=`<div class="fast-empty"><b>${understood}</b><span>Japan Health will not silently relax Visitor/Resident, area, or communication requirements. Change a constraint explicitly or open the full directory. This routing is for navigation only and is not medical advice.</span><div class="fast-actions">${areaRecovery}<a class="btn ghost" href="/clinics.html">Open full directory →</a></div></div>`;
       const clear=grid.querySelector('[data-clear-area]');if(clear)clear.addEventListener('click',()=>{$("area").value='';sync();render()});
       return;
     }
