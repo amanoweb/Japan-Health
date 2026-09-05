@@ -5,4 +5,23 @@
   const stars=n=>"★".repeat(Math.max(1,Math.min(5,Math.round(n/20))))+"☆".repeat(5-Math.max(1,Math.min(5,Math.round(n/20))));const unique=[];const seen=new Set();providers.sort((a,b)=>score(b)-score(a)||a.name.localeCompare(b.name)).forEach(p=>{const k=p.name.toLowerCase().replace(/[^a-z0-9]/g,"");if(!seen.has(k)){seen.add(k);unique.push(p)}});const picks=unique.slice(0,7);
   root.innerHTML=picks.map((p,i)=>{const s=score(p);const specialty=(p.specialties||[]).slice(0,3).join(" · ");return `<article class="featured-card"><div class="rank"><b>ACCESS PICK ${String(i+1).padStart(2,"0")}</b><span class="access-stars" aria-label="${Math.round(s/20)} of 5 access stars">${stars(s)}</span></div><h3>${p.name}</h3><div class="featured-meta">${p.area||"Tokyo"} · ${specialty||"Healthcare"}</div><p>${p.doctorEnglish==="yes"?"Verified doctor-level English is documented. ":p.interpreter==="yes"||p.interpreter==="available"?"A verified interpreter pathway is documented. ":"Language access is shown only where officially sourced. "}Access score ${s}/100 summarizes international-access friction only; it is not a rating of clinical quality.</p><div class="featured-actions"><button class="small-btn" type="button" onclick="openProvider('${p.id}')">View access details</button><a class="small-btn primary" href="/clinics.html?q=${encodeURIComponent((p.specialties||[])[0]||p.name)}">Find similar care</a></div></article>`}).join("");
   const prev=document.getElementById("featuredPrev"),next=document.getElementById("featuredNext");const move=dir=>root.scrollBy({left:root.clientWidth*.8*dir,behavior:"smooth"});if(prev)prev.onclick=()=>move(-1);if(next)next.onclick=()=>move(1);
+  const heroActions=document.querySelector(".hero-actions");
+  if(heroActions&&!heroActions.querySelector('[data-guided-demo-entry]')){
+    const demo=document.createElement("a");
+    demo.className="btn dark";
+    demo.href="/demo.html?audience=visitor&care=general";
+    demo.dataset.guidedDemoEntry="true";
+    demo.textContent="Run the guided product demo";
+    heroActions.appendChild(demo);
+  }
+  const journeyLinks=[
+    ["visitor","/demo.html?audience=visitor&care=general","Try visitor demo"],
+    ["resident","/demo.html?audience=resident&care=general","Try resident demo"],
+    ["medical-travel","/demo.html?audience=medical-travel&care=cancer&language=interpreter","Try medical-travel demo"]
+  ];
+  journeyLinks.forEach(([id,href,label])=>{
+    const card=document.getElementById(id);if(!card||card.querySelector('[data-journey-demo]'))return;
+    const a=document.createElement("a");a.href=href;a.className="small-btn";a.dataset.journeyDemo="true";a.textContent=label;
+    const actions=card.querySelector(".journey-actions")||card;actions.appendChild(a);
+  });
 })();
