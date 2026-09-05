@@ -18,6 +18,7 @@ jobs:
         run: |
           node --check app.js
           node --check api/lead.js
+          node --check trust-controls.js
           node --check data/providers.js
           node --check scripts/validate-provider-data.js
           node --check scripts/validate-lead-contract.js
@@ -32,11 +33,14 @@ jobs:
       - name: Verify production invariants
         run: |
           grep -Fq '<link rel="stylesheet" href="/styles.css"' index.html
+          grep -Fq '<link rel="stylesheet" href="/trust-controls.css"' index.html
           grep -Fq '<script src="/data/providers.js"></script>' index.html
           grep -Fq '<script src="/app.js"></script>' index.html
+          grep -Fq '<script src="/trust-controls.js"></script>' index.html
           grep -Fq 'fetch("/api/lead"' app.js
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
           grep -Fq 'Demo provider records are not real recommendations' index.html
           grep -Fq 'partnerRoute:"ameca"' app.js
           grep -Fq 'AMECA_LEAD_WEBHOOK_URL' api/lead.js
+          grep -Fq 'Show official-source checked records only' index.html
