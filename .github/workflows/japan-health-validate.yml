@@ -34,6 +34,7 @@ jobs:
           node --check data/provider-promotions-batch-7.js
           node --check data/provider-promotions-batch-8.js
           node --check data/provider-promotions-batch-9.js
+          node --check data/provider-promotions-batch-10.js
           node --check scripts/validate-provider-data.js
           node --check scripts/validate-provider-api.js
           node --check scripts/validate-drive-provider-handoff.js
