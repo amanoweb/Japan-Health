@@ -19,8 +19,10 @@ jobs:
           node --check app.js
           node --check api/lead.js
           node --check trust-controls.js
+          node --check access-confidence.js
           node --check data/providers.js
           node --check data/tokyo-english-directory.js
+          node --check data/tokyo-verified-clinics.js
           node --check scripts/validate-provider-data.js
           node --check scripts/validate-lead-contract.js
           node --check scripts/validate-expertise-contract.js
@@ -37,8 +39,10 @@ jobs:
           grep -Fq '<link rel="stylesheet" href="/trust-controls.css"' index.html
           grep -Fq '<script src="/data/providers.js"></script>' index.html
           grep -Fq '<script src="/data/tokyo-english-directory.js"></script>' index.html
+          grep -Fq '<script src="/data/tokyo-verified-clinics.js"></script>' index.html
           grep -Fq '<script src="/app.js"></script>' index.html
           grep -Fq '<script src="/trust-controls.js"></script>' index.html
+          grep -Fq '<script src="/access-confidence.js"></script>' index.html
           grep -Fq 'fetch("/api/lead"' app.js
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
@@ -46,3 +50,5 @@ jobs:
           grep -Fq 'partnerRoute:"ameca"' app.js
           grep -Fq 'AMECA_LEAD_WEBHOOK_URL' api/lead.js
           grep -Fq 'Show official-source checked records only' index.html
+          grep -Fq 'value="medical-travel"' index.html
+          grep -Fq 'journey:major-medical-travel' api/lead.js
