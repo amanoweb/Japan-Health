@@ -56,7 +56,8 @@ jobs:
       - name: Verify production invariants
         run: |
           grep -Fq '<link rel="stylesheet" href="/styles.css"' index.html
-          grep -Fq '<script src="/app.js"></script>' index.html
+          grep -Fq 'href="/app.js"' index.html
+          ! grep -Fq '<script src="/app.js"></script>' index.html
           grep -Fq '<script src="/home-search.js"></script>' index.html
           grep -Fq '<script src="/data/providers.js"></script>' index.html
           grep -Fq '<script src="/data/provider-service-access-batch-2026-09-05.js"></script>' index.html
@@ -71,8 +72,18 @@ jobs:
           grep -Fq 'Symptoms are routed to broad care categories' index.html
           grep -Fq 'Fever / everyday illness' index.html
           grep -Fq 'International Access Score uses communication 40%' index.html
+          grep -Fq 'Prefer service-level evidence when available' index.html
+          grep -Fq 'Provider-level support is not silently promoted' index.html
           grep -Fq 'function constraintMatch' home-search.js
-          grep -Fq "s.language==='direct'&&p.doctorEnglish!=='yes'" home-search.js
+          grep -Fq 'function matchedEvidence' home-search.js
+          grep -Fq 'function serviceAccess' home-search.js
+          grep -Fq "sa.level==='service'" home-search.js
+          grep -Fq 'Source-backed disease/service evidence' home-search.js
+          grep -Fq 'Service-level language evidence' home-search.js
+          grep -Fq 'Provider-level only:' home-search.js
+          grep -Fq 'requested-service communication route' home-search.js
+          grep -Fq 'TOP ACCESS-EVIDENCE MATCH' home-search.js
+          grep -Fq 'Neither is a clinical-quality ranking.' home-search.js
           grep -Fq "s.area&&!areaMatches(p,s.area)" home-search.js
           grep -Fq "id:'general-care'" home-search.js
           grep -Fq "terms:['fever','temperature','cold','flu'" home-search.js
