@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Japan Health | Find the Right Care in Japan</title>
 <meta name="description" content="Compare healthcare access in Japan by specialty, disease or procedure focus, interpreter pathways, insurance, referrals and international-patient access rules."/>
+<meta property="og:title" content="Japan Health | Find the Right Care in Japan"/>
+<meta property="og:description" content="Compare real access pathways in Japan: specialty evidence, interpretation, referrals, self-pay and international-patient coordination."/>
+<meta property="og:type" content="website"/>
+<meta name="twitter:card" content="summary"/>
 <link rel="stylesheet" href="/styles.css"/>
+<link rel="stylesheet" href="/trust-controls.css"/>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Japan Health","description":"Healthcare access navigation for international patients in Japan. Discovery and coordination only; not medical advice."}</script>
 </head>
 <body>
 <div class="prototype">VALIDATION MVP — official-source checked records are labeled; demo records remain illustrative and unverified</div>
@@ -106,6 +112,11 @@
     <select id="referral"><option value="all">Any referral rule</option><option value="required">Referral required</option><option value="no">No referral required</option></select>
   </div>
 
+  <div class="trust-controls" aria-label="Source verification controls">
+    <label class="trust-toggle"><input id="verifiedOnly" type="checkbox"/> Show official-source checked records only</label>
+    <p id="verificationSummary" class="verification-summary" aria-live="polite">Verification status will appear after results load.</p>
+  </div>
+
   <div class="results-bar"><b id="resultCount">0 options</b><span>Compare access evidence, not clinical quality.</span></div>
   <div id="providerGrid" class="provider-grid"></div>
 </section>
@@ -171,4 +182,5 @@
 
 <script src="/data/providers.js"></script>
 <script src="/app.js"></script>
+<script src="/trust-controls.js"></script>
 </body></html>
