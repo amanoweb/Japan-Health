@@ -35,6 +35,7 @@ jobs:
           node --check scripts/validate-drive-provider-handoff.js
           node --check scripts/validate-lead-contract.js
           node --check scripts/validate-expertise-contract.js
+          node --check scripts/report-specialty-coverage.js
           if [ -f api/health.js ]; then node --check api/health.js; fi
       - name: Validate provider data safety
         run: node scripts/validate-provider-data.js
@@ -46,6 +47,10 @@ jobs:
         run: node scripts/validate-expertise-contract.js
       - name: Validate lead handoff contract
         run: node scripts/validate-lead-contract.js
+      - name: Report Tokyo specialty coverage
+        run: |
+          node scripts/report-specialty-coverage.js || code=$?
+          if [ "${code:-0}" -ne 0 ] && [ "${code:-0}" -ne 2 ]; then exit "${code}"; fi
       - name: Verify production invariants
         run: |
           grep -Fq '<link rel="stylesheet" href="/styles.css"' index.html
