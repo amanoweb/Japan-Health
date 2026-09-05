@@ -66,6 +66,16 @@ jobs:
           grep -Fq 'Tokyo area' index.html
           grep -Fq 'Visitor or resident' index.html
           grep -Fq 'No clinical-quality ranking' index.html
+          grep -Fq 'does not silently relax' index.html
+          grep -Fq 'International Access Score uses communication 40%' index.html
+          grep -Fq 'Unknown does not count as a confirmed match' index.html
+          grep -Fq 'function constraintMatch' home-search.js
+          grep -Fq "s.language==='direct'&&p.doctorEnglish!=='yes'" home-search.js
+          grep -Fq "s.area&&!areaMatches(p,s.area)" home-search.js
+          grep -Fq 'No documented match for all selected constraints.' home-search.js
+          grep -Fq 'Search all Tokyo instead' home-search.js
+          grep -Fq 'International Access Score uses communication 40%' home-search.js
+          grep -Fq 'Open verification gaps:' home-search.js
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
           grep -Fq 'Demo provider records are not real recommendations' index.html
