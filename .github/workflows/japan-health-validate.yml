@@ -28,6 +28,7 @@ jobs:
           node --check data/provider-promotions-2026-09-05.js
           node --check data/provider-promotions-batch-2.js
           node --check data/provider-promotions-batch-3.js
+          node --check data/provider-promotions-batch-4.js
           node --check scripts/validate-provider-data.js
           node --check scripts/validate-provider-api.js
           node --check scripts/validate-drive-provider-handoff.js
