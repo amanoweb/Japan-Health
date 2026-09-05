@@ -30,6 +30,7 @@ jobs:
           node --check demo-scenarios.js
           node --check demo-inquiry.js
           node --check demo-journey-guidance.js
+          node --check demo-mobile-comparison.js
       - name: Verify production and demo invariants
         run: |
           grep -Fq '<link rel="stylesheet" href="/styles.css"' index.html
@@ -45,6 +46,7 @@ jobs:
           grep -Fq '/demo-decision-transparency.js' demo-polish.js
           grep -Fq '/demo-handoff-readiness.js' demo-polish.js
           grep -Fq '/demo-journey-guidance.js' demo-polish.js
+          grep -Fq '/demo-mobile-comparison.js' demo-polish.js
           grep -Fq 'SEARCHED EXPERTISE EVIDENCE' demo-evidence-intelligence.js
           grep -Fq 'Provider-wide specialties are not silently promoted' demo-evidence-intelligence.js
           grep -Fq 'APPLIED CONSTRAINTS' demo-decision-transparency.js
@@ -55,6 +57,12 @@ jobs:
           grep -Fq 'ACCESS AT A GLANCE' demo-journey-guidance.js
           grep -Fq 'Access logistics only — not clinical quality.' demo-journey-guidance.js
           grep -Fq 'NEXT ACTION' demo-journey-guidance.js
+          grep -Fq 'ACCESS SCORE' demo-mobile-comparison.js
+          grep -Fq 'BOOKING READINESS' demo-mobile-comparison.js
+          grep -Fq 'TOTAL-COST DATA' demo-mobile-comparison.js
+          grep -Fq 'Show access evidence' demo-mobile-comparison.js
+          grep -Fq 'Open access profile' demo-mobile-comparison.js
+          grep -Fq 'aria-expanded' demo-mobile-comparison.js
           grep -Fq 'HANDOFF READINESS PACKET' demo-handoff-readiness.js
           grep -Fq 'Structured logistics context only' demo-handoff-readiness.js
           grep -Fq 'AMECA remains only a downstream placeholder' demo-inquiry.js
