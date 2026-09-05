@@ -1,6 +1,7 @@
 const fs=require("fs");
 const path=require("path");
 const vm=require("vm");
+const crypto=require("crypto");
 
 const STATIC_PROVIDER_FILES=[
   "data/providers.js",
@@ -27,7 +28,7 @@ async function loadCloudProviders(){
   const key=process.env.SUPABASE_SERVICE_ROLE_KEY||"";
   if(!base||!key)return null;
 
-  const response=await fetch(`${base}/rest/v1/providers?select=id,data&active=eq.true&order=id.asc`,{
+  const response=await fetch(`${base}/rest/v1/providers?select=id,data,updated_at&active=eq.true&order=id.asc`,{
     headers:{
       apikey:key,
       Authorization:`Bearer ${key}`,
@@ -38,14 +39,21 @@ async function loadCloudProviders(){
   const rows=await response.json();
   const providers=rows.map(row=>row?.data).filter(validProvider);
   if(!providers.length)throw new Error("Provider database returned no usable records");
-  return providers;
+  const updatedAt=rows.reduce((latest,row)=>row?.updated_at&&row.updated_at>latest?row.updated_at:latest,"");
+  return {providers,updatedAt};
 }
 
-function send(res,status,body,contentType){
+function buildEtag(providers,source,updatedAt=""){
+  const fingerprint=JSON.stringify({source,updatedAt,providers:providers.map(p=>p.id)});
+  return `\"${crypto.createHash("sha256").update(fingerprint).digest("hex").slice(0,24)}\"`;
+}
+
+function send(res,status,body,contentType,etag){
   res.statusCode=status;
-  res.setHeader("Content-Type",contentType);
+  if(contentType)res.setHeader("Content-Type",contentType);
   res.setHeader("Cache-Control","public, max-age=60, s-maxage=300, stale-while-revalidate=86400");
-  res.end(body);
+  if(etag)res.setHeader("ETag",etag);
+  res.end(body||"");
 }
 
 module.exports=async function handler(req,res){
@@ -54,10 +62,10 @@ module.exports=async function handler(req,res){
     return send(res,405,JSON.stringify({error:"Method not allowed"}),"application/json; charset=utf-8");
   }
 
-  let providers,source="static-fallback",cloudError=null;
+  let providers,source="static-fallback",cloudError=null,updatedAt="";
   try{
-    providers=await loadCloudProviders();
-    if(providers)source="supabase";
+    const cloud=await loadCloudProviders();
+    if(cloud){providers=cloud.providers;updatedAt=cloud.updatedAt;source="supabase";}
   }catch(err){
     cloudError=err.message;
   }
@@ -69,14 +77,24 @@ module.exports=async function handler(req,res){
     }
   }
 
-  const meta={source,count:providers.length,cloudConfigured:Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY)};
+  const etag=buildEtag(providers,source,updatedAt);
+  const requestEtag=req.headers?.["if-none-match"]||req.headers?.["If-None-Match"];
+  if(requestEtag===etag)return send(res,304,"",null,etag);
+
+  const meta={
+    source,
+    count:providers.length,
+    cloudConfigured:Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY),
+    dataVersion:etag.replaceAll('"',''),
+    updatedAt:updatedAt||null
+  };
   const url=new URL(req.url||"/api/providers","http://localhost");
   if(url.searchParams.get("format")==="js"){
     const js=`window.PROVIDERS=${JSON.stringify(providers)};window.JAPAN_HEALTH_DATA_META=${JSON.stringify(meta)};`;
-    return send(res,200,js,"application/javascript; charset=utf-8");
+    return send(res,200,js,"application/javascript; charset=utf-8",etag);
   }
 
   const payload={providers,meta};
   if(cloudError&&process.env.NODE_ENV!=="production")payload.meta.cloudError=cloudError;
-  return send(res,200,JSON.stringify(payload),"application/json; charset=utf-8");
+  return send(res,200,JSON.stringify(payload),"application/json; charset=utf-8",etag);
 };
