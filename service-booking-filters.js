@@ -52,6 +52,7 @@
   function apply(){
     const c=active(),q=query(),cards=[...grid.querySelectorAll(":scope > .provider-card")];
     if(!hasActive(c)||!q){summary(cards.length,cards.filter(card=>providerForCard(card)?.recordStatus==="official-source-verified").length,c,q);return;}
+    if(!cards.length&&grid.querySelector(".service-filter-empty")){summary(0,0,c,q);return;}
     let kept=0,verified=0;
     for(const card of cards){
       const p=providerForCard(card),r=checkedRequirements(p,q);
@@ -59,7 +60,7 @@
       else card.remove();
     }
     const rc=$("resultCount");if(rc)rc.textContent=`${kept} options · ${verified} official-source checked · service booking filters applied`;
-    if(!kept){
+    if(!kept&&!grid.querySelector(".service-filter-empty")){
       grid.innerHTML='<div class="empty-state service-filter-empty"><h3>No source-backed service booking match.</h3><p>Japan Health did not relax your service-level audience, referral or coordinator requirements. Try a different service search or remove one service booking constraint.</p><button class="small-btn primary" onclick="openLeadModal()">Ask a coordinator</button></div>';
     }
     summary(kept,verified,c,q);
