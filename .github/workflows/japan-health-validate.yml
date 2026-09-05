@@ -21,6 +21,9 @@ jobs:
           node --check api/providers.js
           node --check trust-controls.js
           node --check access-confidence.js
+          node --check directory-intelligence.js
+          node --check cost-intelligence.js
+          node --check lead-review.js
           node --check data/providers.js
           node --check data/tokyo-english-directory.js
           node --check data/tokyo-verified-clinics.js
@@ -67,12 +70,17 @@ jobs:
           grep -Fq '<script src="/app.js"></script>' index.html
           grep -Fq '<script src="/trust-controls.js"></script>' index.html
           grep -Fq '<script src="/access-confidence.js"></script>' index.html
+          grep -Fq '<script src="/cost-intelligence.js"></script>' index.html
+          grep -Fq '<script src="/lead-review.js"></script>' index.html
+          grep -Fq '<script src="/cost-intelligence.js"></script>' clinics.html
           grep -Fq 'fetch("/api/lead"' app.js
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
           grep -Fq 'Demo provider records are not real recommendations' index.html
           grep -Fq 'partnerRoute:"ameca"' app.js
           grep -Fq 'AMECA_LEAD_WEBHOOK_URL' api/lead.js
+          grep -Fq 'costSnapshot:sanitizeCostSnapshot' api/lead.js
+          grep -Fq 'Cost-readiness context only' api/lead.js
           grep -Fq 'SUPABASE_SERVICE_ROLE_KEY' api/providers.js
           grep -Fq 'Show official-source checked records only' index.html
           grep -Fq 'value="medical-travel"' index.html
