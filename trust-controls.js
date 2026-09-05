@@ -8,29 +8,72 @@
   const params=new URLSearchParams(location.search);
   toggle.checked=params.get("verifiedOnly")==="1";
 
+  const isTokyoDirectory=p=>Boolean(p&&p.directoryBasis==="Tokyo Metropolitan Government foreign-patient list");
+  const providerForCard=card=>providers.find(p=>p.name===card.querySelector("h3")?.textContent?.trim());
   const ageInDays=date=>{
     if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||"")))return null;
     const checked=new Date(`${date}T00:00:00Z`);
     return Math.max(0,Math.floor((Date.now()-checked.getTime())/86400000));
   };
 
-  function setUrlFlag(){
+  let areaSelect=null;
+
+  function setUrlState(){
     const p=new URLSearchParams(location.search);
     if(toggle.checked)p.set("verifiedOnly","1");else p.delete("verifiedOnly");
+    if(areaSelect&&areaSelect.value!=="all")p.set("area",areaSelect.value);else p.delete("area");
     history.replaceState(null,"",`${location.pathname}${p.size?`?${p}`:""}${location.hash}`);
+  }
+
+  function neutralizeDirectoryScore(card,provider){
+    if(!isTokyoDirectory(provider))return;
+    const badgeRow=card.querySelector(".badge-row");
+    if(badgeRow&&!badgeRow.querySelector(".directory-language-badge")){
+      const badge=document.createElement("span");
+      badge.className="badge directory-language-badge";
+      badge.textContent=`Official Tokyo list · ${provider.languagesListed||"English listed"}`;
+      badgeRow.prepend(badge);
+    }
+
+    const score=card.querySelector(".score-row");
+    if(score){
+      score.classList.add("directory-baseline-score");
+      const value=score.querySelector(".score-ring b"),suffix=score.querySelector(".score-ring small"),label=score.querySelector("strong"),desc=score.querySelector("span");
+      if(value)value.textContent="—";
+      if(suffix)suffix.textContent="";
+      if(label)label.textContent="Access score pending";
+      if(desc)desc.textContent="English is listed by Tokyo; physician/reception/interpreter details are not yet verified.";
+    }
+    const breakdown=card.querySelector(".score-breakdown");
+    if(breakdown)breakdown.hidden=true;
+  }
+
+  function applyAreaOrder(card,provider){
+    if(!provider)return;
+    const sort=document.getElementById("sort")?.value;
+    if(sort==="area"){
+      const areas=[...new Set(providers.filter(p=>p.city==="Tokyo").map(p=>p.area).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      card.style.order=String(Math.max(0,areas.indexOf(provider.area)));
+    }else card.style.order="";
   }
 
   function annotateAndFilter(){
     const cards=[...grid.querySelectorAll(".provider-card")];
-    let visible=0,verified=0;
+    const selectedArea=areaSelect?.value||"all";
+    let visible=0,verifiedVisible=0;
     cards.forEach(card=>{
-      const name=card.querySelector("h3")?.textContent?.trim();
-      const provider=providers.find(p=>p.name===name);
+      const provider=providerForCard(card);
       if(!provider)return;
       const isVerified=provider.recordStatus==="official-source-verified";
-      if(isVerified)verified++;
-      card.hidden=Boolean(toggle.checked&&!isVerified);
-      if(!card.hidden)visible++;
+      const areaMatch=selectedArea==="all"||provider.area===selectedArea;
+      card.hidden=Boolean((toggle.checked&&!isVerified)||!areaMatch);
+      if(!card.hidden){
+        visible++;
+        if(isVerified)verifiedVisible++;
+      }
+
+      neutralizeDirectoryScore(card,provider);
+      applyAreaOrder(card,provider);
 
       const badge=card.querySelector(".record-state.verified");
       if(badge&&!card.querySelector(".freshness-note")){
@@ -44,16 +87,78 @@
       }
     });
 
+    const count=document.getElementById("resultCount");
+    if(count)count.textContent=`${visible} options · ${verifiedVisible} official-source checked`;
     if(note){
+      const areaText=selectedArea==="all"?"Tokyo":selectedArea;
       note.textContent=toggle.checked
-        ?`Showing ${visible} official-source checked option${visible===1?"":"s"}. Source checks support the displayed access facts only; confirm current acceptance before booking.`
-        :`${verified} of ${cards.length} displayed options are official-source checked. Demo records remain clearly labeled and are not recommendations.`;
+        ?`Showing ${visible} official-source checked option${visible===1?"":"s"} in ${areaText}. Source checks support only the displayed access facts; confirm current acceptance before booking.`
+        :`${visible} option${visible===1?"":"s"} shown in ${areaText}; ${verifiedVisible} are official-source checked. Unknown language roles are not treated as poor English.`;
     }
   }
 
   function syncToggle(){
-    setUrlFlag();
+    setUrlState();
     annotateAndFilter();
+  }
+
+  function injectAreaControl(){
+    if(document.getElementById("area")){
+      areaSelect=document.getElementById("area");
+      return;
+    }
+    const filters=document.querySelector(".filters");
+    const city=document.getElementById("city");
+    if(!filters)return;
+    areaSelect=document.createElement("select");
+    areaSelect.id="area";
+    areaSelect.setAttribute("aria-label","Tokyo area");
+    const areas=[...new Set(providers.filter(p=>p.city==="Tokyo").map(p=>p.area).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    areaSelect.innerHTML=`<option value="all">All Tokyo areas</option>${areas.map(a=>`<option value="${a}">${a}</option>`).join("")}`;
+    const requested=new URLSearchParams(location.search).get("area");
+    if(requested&&areas.includes(requested))areaSelect.value=requested;
+    city?.insertAdjacentElement("afterend",areaSelect);
+    areaSelect.addEventListener("input",()=>{setUrlState();annotateAndFilter();});
+  }
+
+  function enhanceSort(){
+    const sort=document.getElementById("sort");
+    if(!sort||[...sort.options].some(o=>o.value==="area"))return;
+    const opt=document.createElement("option");
+    opt.value="area";
+    opt.textContent="Area A–Z";
+    sort.appendChild(opt);
+    sort.addEventListener("input",()=>queueMicrotask(annotateAndFilter));
+  }
+
+  function neutralizeDirectoryDetail(){
+    const detail=document.getElementById("providerDetail");
+    if(!detail)return;
+    const name=detail.querySelector("h2")?.textContent?.trim();
+    const provider=providers.find(p=>p.name===name);
+    if(!isTokyoDirectory(provider))return;
+
+    detail.querySelectorAll(".detail-grid>div").forEach(cell=>{
+      if(cell.querySelector("small")?.textContent?.trim()==="Access Score"){
+        const b=cell.querySelector("b");
+        if(b)b.textContent="Not scored yet";
+      }
+    });
+    detail.querySelectorAll("h3").forEach(h=>{
+      if(h.textContent.trim()==="Access Score breakdown"){
+        h.hidden=true;
+        if(h.nextElementSibling?.classList.contains("score-breakdown"))h.nextElementSibling.hidden=true;
+      }
+    });
+    detail.querySelectorAll("p.muted").forEach(p=>{
+      if(/score summarizes international-access friction/i.test(p.textContent||""))p.textContent="This baseline record is not assigned a numeric International Access Score until provider-level communication and booking facts are verified. Unknown is not treated as poor access.";
+    });
+    if(!detail.querySelector(".directory-detail-note")){
+      const n=document.createElement("div");
+      n.className="directory-detail-note";
+      n.innerHTML=`<b>Official Tokyo language evidence</b><span>${provider.languagesListed||"English listed"}</span><small>This confirms the government directory listing only; it does not establish physician fluency, reception fluency or interpreter availability.</small>`;
+      detail.querySelector(".provider-meta")?.insertAdjacentElement("afterend",n);
+    }
   }
 
   function applySearch({query,audience,language}={}){
@@ -63,51 +168,35 @@
     if(language&&lang)lang.value=language;
     if(typeof window.render==="function")window.render();
     if(typeof window.syncUrl==="function")window.syncUrl();
-    setUrlFlag();
+    setUrlState();
     location.hash="find";
   }
 
   function injectConsumerEntry(){
-    if(document.getElementById("careStarter"))return;
-    const hero=document.querySelector(".hero");
-    if(!hero)return;
+    // Tokyo now has a first-class three-path journey in index.html. Do not re-inject
+    // the older Japan-wide starter or overwrite the Tokyo hero copy.
+    if(document.getElementById("journeys")||document.getElementById("careStarter"))return;
+  }
 
-    const copy=hero.querySelector(".hero-copy");
-    const heading=copy?.querySelector("h1");
-    const intro=copy?.querySelector("p");
-    if(heading)heading.innerHTML='Find care in Japan that <span>works for you.</span>';
-    if(intro)intro.textContent="Start with what you need, whether you live in Japan or are visiting, and how you want to communicate. Japan Health then narrows the options without guessing missing access details.";
-
-    const starter=document.createElement("section");
-    starter.id="careStarter";
-    starter.className="care-starter";
-    starter.setAttribute("aria-labelledby","careStarterTitle");
-    starter.innerHTML=`
-      <div class="care-starter-head">
-        <div class="eyebrow dark">START WITH WHAT YOU NEED</div>
-        <h2 id="careStarterTitle">You don’t need to know the medical specialty.</h2>
-        <p>Choose the closest match. We’ll turn it into a care search.</p>
+  function injectCoordinatorDirectory(){
+    const section=document.getElementById("coordinators");
+    if(!section||document.getElementById("coordinatorDirectory"))return;
+    const directory=document.createElement("div");
+    directory.id="coordinatorDirectory";
+    directory.className="coordinator-directory";
+    directory.innerHTML=`
+      <div class="coordinator-directory-head">
+        <div><span class="mini">SOURCE-BACKED COORDINATION OPTIONS</span><h3>Compare access credentials, not clinical quality.</h3></div>
+        <p>Government registration and coordination accreditation can support visa, language and logistics decisions. They do not mean one company provides better medical care.</p>
       </div>
-      <div class="care-starter-grid">
-        <button type="button" data-friendly-query="Internal Medicine"><span>🩺</span><b>Feeling sick</b><small>Fever, cough, stomach issues & general care</small></button>
-        <button type="button" data-friendly-query="Dermatology"><span>✨</span><b>Skin problem</b><small>Rashes, allergies & dermatology</small></button>
-        <button type="button" data-friendly-query="OB-GYN"><span>🌷</span><b>Women’s health</b><small>Gynecology & women’s care</small></button>
-        <button type="button" data-friendly-query="Dentistry"><span>🦷</span><b>Dental care</b><small>Routine or urgent dental needs</small></button>
-        <button type="button" data-friendly-query="Orthopedics"><span>🦴</span><b>Pain or injury</b><small>Orthopedics, aches & minor injuries</small></button>
-        <button type="button" data-friendly-query="Health Screening"><span>🧪</span><b>Health checkup</b><small>Screening, checkups & certificates</small></button>
-        <button type="button" data-friendly-query="Travel Health"><span>✈️</span><b>Travel health</b><small>Vaccines, travel medicine & documents</small></button>
-        <button type="button" data-friendly-query="Neurology"><span>🏥</span><b>Specialist care</b><small>Complex care and hospital pathways</small></button>
-      </div>
-      <div class="journey-shortcuts" aria-label="Choose your situation">
-        <button type="button" data-journey="resident"><span>🏠</span><b>I live in Japan</b><small>Insurance, repeat visits and nearby care</small></button>
-        <button type="button" data-journey="visitor"><span>🧳</span><b>I’m visiting Japan</b><small>Short stays, self-pay and access from abroad</small></button>
-        <button type="button" data-language-shortcut="direct"><span>💬</span><b>I want an English-speaking doctor</b><small>Only show records with documented physician English</small></button>
+      <div class="coordinator-cards">
+        <article><span class="coord-credential">MEJ AMTAC · MOFA registered guarantor</span><h4>JMHC / JTB Corp.</h4><p>MOFA lists Japanese, Chinese, Korean, English and Vietnamese. JMHC publishes medical coordination, interpretation/translation, medical-stay visa guarantor and travel-support services.</p><div class="coord-links"><a href="https://www.mofa.go.jp/j_info/visit/visa/medical_stay3.html" target="_blank" rel="noopener noreferrer">MOFA source ↗</a><a href="https://medicalexcellencejapan.org/en/amtac_Inquiry/" target="_blank" rel="noopener noreferrer">MEJ AMTAC ↗</a></div></article>
+        <article><span class="coord-credential">MEJ AMTAC · MOFA registered coordinator</span><h4>Emergency Assistance Japan</h4><p>MOFA lists English, Japanese, Chinese, Vietnamese, Korean, Russian and other language support. MEJ lists the company as an Accredited Medical Travel Assistance Company.</p><div class="coord-links"><a href="https://www.mofa.go.jp/j_info/visit/visa/medical_stay2.html" target="_blank" rel="noopener noreferrer">MOFA source ↗</a><a href="https://medicalexcellencejapan.org/en/amtac_Inquiry/" target="_blank" rel="noopener noreferrer">MEJ AMTAC ↗</a></div></article>
+        <article><span class="coord-credential">MOFA registered coordinator</span><h4>SMC Co., Ltd.</h4><p>MOFA lists an International Medical Coordination Department and multilingual support including English, Russian, Korean, Vietnamese and Spanish. No clinical-quality claim is inferred.</p><div class="coord-links"><a href="https://www.mofa.go.jp/j_info/visit/visa/medical_stay2.html" target="_blank" rel="noopener noreferrer">MOFA source ↗</a></div></article>
+        <article class="coord-partner"><span class="coord-credential partner">Japan Health downstream partner</span><h4>AMECA</h4><p>AMECA's own site publishes Tokyo contact routes in Chinese, English, Japanese and Korean. This card does not assert MOFA guarantor or MEJ AMTAC status because that credential has not been established in this dataset.</p><div class="coord-links"><a href="https://ameca.jp/" target="_blank" rel="noopener noreferrer">AMECA source ↗</a><button type="button" data-ameca-handoff>Ask Japan Health</button></div></article>
       </div>`;
-    hero.insertAdjacentElement("afterend",starter);
-
-    starter.querySelectorAll("[data-friendly-query]").forEach(btn=>btn.addEventListener("click",()=>applySearch({query:btn.dataset.friendlyQuery})));
-    starter.querySelectorAll("[data-journey]").forEach(btn=>btn.addEventListener("click",()=>applySearch({audience:btn.dataset.journey})));
-    starter.querySelectorAll("[data-language-shortcut]").forEach(btn=>btn.addEventListener("click",()=>applySearch({language:btn.dataset.languageShortcut})));
+    section.appendChild(directory);
+    directory.querySelector("[data-ameca-handoff]")?.addEventListener("click",()=>window.openLeadModal?.());
   }
 
   function injectMobileCta(){
@@ -120,13 +209,18 @@
     document.body.appendChild(bar);
   }
 
+  injectAreaControl();
+  enhanceSort();
   toggle.addEventListener("change",syncToggle);
   ["q","audience","city","language","coord","referral","sort"].forEach(id=>{
     const el=document.getElementById(id);
-    if(el)el.addEventListener("input",()=>queueMicrotask(setUrlFlag));
+    if(el)el.addEventListener("input",()=>queueMicrotask(()=>{setUrlState();annotateAndFilter();}));
   });
-  new MutationObserver(annotateAndFilter).observe(grid,{childList:true});
+  new MutationObserver(()=>queueMicrotask(annotateAndFilter)).observe(grid,{childList:true});
+  const detail=document.getElementById("providerDetail");
+  if(detail)new MutationObserver(()=>queueMicrotask(neutralizeDirectoryDetail)).observe(detail,{childList:true,subtree:true});
   injectConsumerEntry();
+  injectCoordinatorDirectory();
   injectMobileCta();
   annotateAndFilter();
 })();
