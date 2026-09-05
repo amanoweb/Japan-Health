@@ -26,6 +26,7 @@ jobs:
           node --check lead-review.js
           node --check specialist-access.js
           node --check service-booking-filters.js
+          node --check booking-readiness.js
           node --check specialist-handoff.js
           node --check data/providers.js
           node --check data/tokyo-english-directory.js
@@ -86,17 +87,22 @@ jobs:
           grep -Fq '<script src="/cost-intelligence.js"></script>' clinics.html
           grep -Fq '<script src="/specialist-access.js"></script>' clinics.html
           grep -Fq '<script src="/service-booking-filters.js"></script>' clinics.html
+          grep -Fq '<script src="/booking-readiness.js"></script>' clinics.html
           grep -Fq '<script src="/specialist-handoff.js"></script>' clinics.html
           grep -Fq 'SERVICE-LEVEL BOOKING FILTERS' service-booking-filters.js
           grep -Fq 'Unknown fields never count as a match' service-booking-filters.js
           grep -Fq 'serviceAudience' service-booking-filters.js
           grep -Fq 'serviceReferral' service-booking-filters.js
           grep -Fq 'serviceCoordinator' service-booking-filters.js
+          grep -Fq 'BOOKING READINESS' booking-readiness.js
+          grep -Fq 'documentation completeness only' booking-readiness.js
+          grep -Fq 'Booking readiness · documented fields' booking-readiness.js
           grep -Fq 'SEARCHED EXPERTISE + SERVICE ACCESS' specialist-access.js
           grep -Fq 'SERVICE-LEVEL CONFIRMED' specialist-access.js
           grep -Fq 'PROVIDER-LEVEL ONLY' specialist-access.js
           grep -Fq 'SPECIALIST HANDOFF CONTEXT' specialist-handoff.js
           grep -Fq 'source-backed expertise evidence' clinics.html
+          grep -Fq 'Booking Readiness is also shown separately' clinics.html
           grep -Fq 'fetch("/api/lead"' app.js
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
