@@ -99,7 +99,7 @@
     summary.textContent=s.query?`${candidates.length} documented constraint match${candidates.length===1?'':'es'} for “${s.query}”${s.area?` in ${s.area}`:''}.${routeText} Selected Visitor/Resident, area and communication constraints are hard filters; they are not silently relaxed.`:'Describe a symptom, care need, disease, or procedure to get started.';
     if(!candidates.length){
       const areaRecovery=s.area?'<button class="btn ghost" type="button" data-clear-area>Search all Tokyo instead</button>':'';
-      const understood=routed?`We understood “${escapeHtml(s.query)}” as ${escapeHtml(routed)}, but no provider in the current dataset satisfies every selected constraint.`:'No current provider record matched the search terms and every selected constraint.';
+      const understood=routed?`No documented match for all selected constraints. We understood “${escapeHtml(s.query)}” as ${escapeHtml(routed)}, but no provider in the current dataset satisfies every selected constraint.`:'No documented match for all selected constraints. No current provider record matched the search terms and every selected constraint.';
       grid.innerHTML=`<div class="fast-empty"><b>${understood}</b><span>Japan Health will not silently relax Visitor/Resident, area, or communication requirements. Change a constraint explicitly or open the full directory. This routing is for navigation only and is not medical advice.</span><div class="fast-actions">${areaRecovery}<a class="btn ghost" href="/clinics.html">Open full directory →</a></div></div>`;
       const clear=grid.querySelector('[data-clear-area]');if(clear)clear.addEventListener('click',()=>{$("area").value='';sync();render()});
       return;
