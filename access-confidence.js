@@ -43,7 +43,7 @@
 
   function missingDimensions(p){
     const d=dimensions(p);
-    return Object.entries(d).filter(([,v])=>!v).map(([k])=>({communication:"communication",booking:"booking rules",eligibility:"visitor/resident eligibility",cost:"total-cost data"}[k]||k);
+    return Object.entries(d).filter(([,v])=>!v).map(([k])=>({communication:"communication",booking:"booking rules",eligibility:"visitor/resident eligibility",cost:"total-cost data"}[k]||k));
   }
 
   function coverageText(p){
