@@ -39,7 +39,17 @@ const TARGETS=[
 const DIRECTORY_HOSTS=["jnto.go.jp","hokeniryo.metro.tokyo.lg.jp"];
 function normalizeName(value){return String(value||"").toLowerCase().replace(/[^a-z0-9]/g,"");}
 function isDirectoryUrl(value){try{return DIRECTORY_HOSTS.some(host=>new URL(value).hostname.endsWith(host))}catch{return false}}
-function isProviderLevelVerified(provider){if(provider.recordStatus!=="official-source-verified"||provider.discoveryStatus==="directory-only")return false;if(provider.source&&!isDirectoryUrl(provider.source))return true;return (provider.expertiseEvidence||[]).some(e=>e&&e.evidenceStatus==="official-source-verified"&&e.sourceUrl&&!isDirectoryUrl(e.sourceUrl));}
+function inferredVerificationLevel(provider){
+  if(provider.verificationLevel)return provider.verificationLevel;
+  if(provider.recordStatus==="demo")return "demo";
+  if(provider.discoveryStatus==="directory-only"||isDirectoryUrl(provider.source))return "government-directory";
+  if(provider.recordStatus==="official-source-verified"){
+    if(provider.source&&!isDirectoryUrl(provider.source))return "provider-official";
+    if((provider.expertiseEvidence||[]).some(e=>e&&e.evidenceStatus==="official-source-verified"&&e.sourceUrl&&!isDirectoryUrl(e.sourceUrl)))return "provider-official";
+  }
+  return "government-directory";
+}
+function isProviderLevelVerified(provider){return provider.recordStatus==="official-source-verified"&&inferredVerificationLevel(provider)==="provider-official";}
 function loadProviders(){const sandbox={window:{PROVIDERS:[]}};for(const relativePath of STATIC_PROVIDER_FILES){const source=fs.readFileSync(path.join(process.cwd(),relativePath),"utf8");vm.runInNewContext(source,sandbox,{filename:relativePath,timeout:1000});}const byName=new Map();for(const provider of sandbox.window.PROVIDERS||[]){if(!provider||provider.city!=="Tokyo")continue;const key=normalizeName(provider.name)||provider.id;byName.set(key,provider);}return [...byName.values()];}
 function providerText(provider){return [provider.name,...(provider.specialties||[])].join(" | ");}
 const providers=loadProviders();
