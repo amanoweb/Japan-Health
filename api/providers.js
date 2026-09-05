@@ -66,8 +66,16 @@ async function loadCloudProviders(){
   return {providers,updatedAt};
 }
 
+function mergeProviderSources(cloudProviders,staticProviders){
+  // GitHub japan-health is the product source of truth. Cloud-only rows are retained,
+  // but the checked-in static/promoted record wins on duplicate id or normalized name.
+  return dedupeProviders([...(cloudProviders||[]),...(staticProviders||[])]);
+}
+
 function buildEtag(providers,source,updatedAt=""){
-  const fingerprint=JSON.stringify({source,updatedAt,providers:providers.map(p=>p.id)});
+  // Hash the displayed provider payload, not only ids, so evidence/price/access edits
+  // invalidate browser/CDN caches even when the provider roster itself is unchanged.
+  const fingerprint=JSON.stringify({source,updatedAt,providers});
   return `\"${crypto.createHash("sha256").update(fingerprint).digest("hex").slice(0,24)}\"`;
 }
 
@@ -85,19 +93,22 @@ module.exports=async function handler(req,res){
     return send(res,405,JSON.stringify({error:"Method not allowed"}),"application/json; charset=utf-8");
   }
 
-  let providers,source="static-fallback",cloudError=null,updatedAt="";
-  try{
-    const cloud=await loadCloudProviders();
-    if(cloud){providers=cloud.providers;updatedAt=cloud.updatedAt;source="supabase";}
-  }catch(err){
-    cloudError=err.message;
+  let staticProviders;
+  try{staticProviders=loadStaticProviders();}
+  catch(err){
+    return send(res,500,JSON.stringify({error:"Provider data unavailable"}),"application/json; charset=utf-8");
   }
 
-  if(!providers){
-    try{providers=loadStaticProviders();}
-    catch(err){
-      return send(res,500,JSON.stringify({error:"Provider data unavailable"}),"application/json; charset=utf-8");
+  let providers=staticProviders,source="static-fallback",cloudError=null,updatedAt="";
+  try{
+    const cloud=await loadCloudProviders();
+    if(cloud){
+      providers=mergeProviderSources(cloud.providers,staticProviders);
+      updatedAt=cloud.updatedAt;
+      source="supabase+github";
     }
+  }catch(err){
+    cloudError=err.message;
   }
 
   const etag=buildEtag(providers,source,updatedAt);
@@ -108,6 +119,7 @@ module.exports=async function handler(req,res){
     source,
     count:providers.length,
     cloudConfigured:Boolean(process.env.SUPABASE_URL&&process.env.SUPABASE_SERVICE_ROLE_KEY),
+    githubSourceOfTruth:true,
     dataVersion:etag.replaceAll('"',''),
     updatedAt:updatedAt||null
   };
