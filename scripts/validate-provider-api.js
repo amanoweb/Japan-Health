@@ -11,6 +11,8 @@ function mockResponse(){
   };
 }
 
+function normalizeName(value){return String(value||"").toLowerCase().replace(/[^a-z0-9]/g,"");}
+
 async function run(){
   delete process.env.SUPABASE_URL;
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -26,6 +28,28 @@ async function run(){
   assert.ok(payload.providers.every(p=>p&&typeof p.id==="string"&&typeof p.name==="string"));
   assert.equal(payload.meta.count,payload.providers.length);
   assert.equal(payload.meta.dataVersion,jsonRes.headers.ETag.replaceAll('"',''));
+
+  const ids=payload.providers.map(p=>p.id);
+  assert.equal(new Set(ids).size,ids.length,"provider API must not return duplicate IDs");
+  const names=payload.providers.map(p=>normalizeName(p.name)).filter(Boolean);
+  assert.equal(new Set(names).size,names.length,"provider API must not return duplicate normalized names");
+
+  for(const id of ["jn-handoff-american-clinic-tokyo","jn-handoff-kishi-clinica-femina","jn-handoff-minamiaoyama-eye"]){
+    const p=payload.providers.find(x=>x.id===id);
+    assert.ok(p,`${id} must be present after provider promotion`);
+    assert.equal(p.discoveryStatus,"provider-level-verified");
+    assert.equal(p.recordStatus,"official-source-verified");
+    assert.ok(/^https:\/\//.test(p.source));
+    assert.ok(Array.isArray(p.expertiseEvidence)&&p.expertiseEvidence.length>0);
+  }
+  const american=payload.providers.find(p=>p.id==="jn-handoff-american-clinic-tokyo");
+  assert.equal(american.doctorEnglish,"yes");
+  assert.match(american.notes,/case by case/i);
+  const kishi=payload.providers.find(p=>p.id==="jn-handoff-kishi-clinica-femina");
+  assert.equal(kishi.doctorEnglish,"unknown","English website must not be promoted to physician fluency");
+  const eye=payload.providers.find(p=>p.id==="jn-handoff-minamiaoyama-eye");
+  assert.ok(eye.specialties.includes("ICL"));
+  assert.match(eye.notes,/Foreign residents/i);
 
   const cachedRes=mockResponse();
   await handler({method:"GET",url:"/api/providers",headers:{"if-none-match":jsonRes.headers.ETag}},cachedRes);
@@ -44,7 +68,7 @@ async function run(){
   const postRes=mockResponse();
   await handler({method:"POST",url:"/api/providers",headers:{}},postRes);
   assert.equal(postRes.statusCode,405);
-  console.log(`Provider API validation passed for ${payload.providers.length} records with ETag caching.`);
+  console.log(`Provider API validation passed for ${payload.providers.length} records with dedupe, promotions and ETag caching.`);
 }
 
 run().catch(err=>{console.error(err);process.exit(1);});
