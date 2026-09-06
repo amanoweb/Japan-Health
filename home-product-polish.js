@@ -70,6 +70,63 @@
   area.setAttribute('list',datalist.id);
   area.insertAdjacentElement('afterend',datalist);
 
+  const specialtyGroups=[
+    {label:'Eyes / vision',items:[['Ophthalmology','Eye problem / vision change']]},
+    {label:'Ear, nose & throat',items:[['Otolaryngology','Ear pain / nose / throat'],['ENT','ENT care']]},
+    {label:'Skin',items:[['Dermatology','Rash / skin problem']]},
+    {label:'Bones, joints & muscles',items:[['Orthopedics','Back / joint pain']]},
+    {label:'Urinary',items:[['Urology','Urinary problem']]}
+  ];
+  const providerSearchText=()=>normalize((window.PROVIDERS||[]).map(p=>[p.name,(p.specialties||[]).join(' '),(p.expertiseEvidence||[]).map(e=>typeof e==='string'?e:(e?.label||e?.name||'')).join(' ')].join(' ')).join(' '));
+  const availableText=providerSearchText();
+  const commonReason=document.getElementById('commonReasonHome');
+  const commonCareNeeds=document.getElementById('commonCareNeeds');
+  const quickMenu=document.querySelector('.quick-menu');
+  const addedValues=new Set();
+
+  specialtyGroups.forEach(group=>{
+    const availableItems=group.items.filter(([value])=>availableText.includes(normalize(value)));
+    if(!availableItems.length)return;
+    if(commonReason){
+      const optgroup=document.createElement('optgroup');
+      optgroup.label=group.label;
+      availableItems.forEach(([value,label])=>{
+        if(addedValues.has(value))return;
+        const option=document.createElement('option');
+        option.value=value;
+        option.textContent=label;
+        optgroup.appendChild(option);
+        addedValues.add(value);
+      });
+      if(optgroup.children.length)commonReason.appendChild(optgroup);
+    }
+    if(commonCareNeeds){
+      availableItems.forEach(([value,label])=>{
+        const option=document.createElement('option');
+        option.value=value;
+        option.label=label;
+        commonCareNeeds.appendChild(option);
+      });
+    }
+  });
+
+  if(quickMenu){
+    const quickAdditions=[
+      ['Ophthalmology','Eye problem','Eye pain, redness or vision concerns'],
+      ['Otolaryngology','Ear / nose / throat','Ear pain, sinus or throat concerns'],
+      ['Dermatology','Skin problem','Rash and other skin concerns'],
+      ['Orthopedics','Back / joint pain','Muscle, back and joint concerns']
+    ];
+    quickAdditions.filter(([value])=>availableText.includes(normalize(value))).forEach(([value,label,helper])=>{
+      if(quickMenu.querySelector(`[data-quick="${value}"]`))return;
+      const button=document.createElement('button');
+      button.type='button';
+      button.dataset.quick=value;
+      button.innerHTML=`${label}<small>${helper}</small>`;
+      quickMenu.appendChild(button);
+    });
+  }
+
   const isRecorded=v=>Boolean(v&&!/^unknown$/i.test(String(v).trim()));
   const currentSearch=()=>({
     query:careQuery.value.trim(),
