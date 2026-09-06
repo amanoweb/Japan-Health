@@ -24,6 +24,24 @@
       .directory-more-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 12px 12px}
       .directory-more-field{display:grid;gap:5px;font-size:8px;font-weight:900;color:#657789}
       .directory-more-field select{width:100%;min-height:44px}
+      .provider-grid{grid-template-columns:1fr!important;gap:12px!important}
+      .provider-card{padding:18px 20px!important;border-radius:16px!important}
+      .provider-card h3{font-size:20px;margin:7px 0 5px}
+      .provider-card .provider-meta{font-size:10px;line-height:1.5;color:#64748b}
+      .provider-card .badge-row{margin-top:10px}
+      .provider-card>.match-panel,
+      .provider-card>.score-row,
+      .provider-card>.score-breakdown,
+      .provider-card>.provider-gridline,
+      .provider-card>.cost-grid,
+      .provider-card>.published-cost,
+      .provider-card>.evidence-row,
+      .provider-card>.evidence-note,
+      .provider-card>.source-line{display:none!important}
+      .provider-card>p{display:none!important}
+      .provider-card .provider-actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+      .provider-card .provider-actions .small-btn:first-child{font-weight:900}
+      .directory-card-helper{margin:10px 0 0;font-size:9px;line-height:1.5;color:#718295}
       .clinic-detail-intro{margin:10px 0 2px;font-size:9px;line-height:1.55;color:#64748b}
       .clinic-essentials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}
       .clinic-essential{padding:11px;border:1px solid #e1e8ef;border-radius:11px;background:#f8fafc}
@@ -43,6 +61,8 @@
         .directory-more-grid,.clinic-essentials{grid-template-columns:1fr}
         .clinic-essential.booking{grid-column:auto}
         .directory-more-filters>summary,.clinic-detail-more>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between}
+        .provider-card{padding:16px!important}
+        .provider-card .provider-actions{display:grid;grid-template-columns:1fr}
       }
     `;
     document.head.appendChild(style);
@@ -106,6 +126,27 @@
     return 'Current booking method needs verification with the clinic or coordination pathway.';
   }
 
+  function simplifyProviderCards(){
+    const grid=document.getElementById('providerGrid');
+    if(!grid)return;
+    grid.querySelectorAll('.provider-card').forEach(card=>{
+      if(card.dataset.directorySimplified==='1')return;
+      card.dataset.directorySimplified='1';
+      const actions=card.querySelector('.provider-actions');
+      if(actions){
+        const buttons=actions.querySelectorAll('button');
+        if(buttons[0])buttons[0].textContent='View clinic';
+        if(buttons[1])buttons[1].textContent='Need access help?';
+      }
+      if(!card.querySelector('.directory-card-helper')){
+        const helper=document.createElement('p');
+        helper.className='directory-card-helper';
+        helper.textContent='Open this clinic to review referral, cost, source evidence and booking-access details. These logistics do not rank clinical quality.';
+        if(actions)actions.before(helper);else card.appendChild(helper);
+      }
+    });
+  }
+
   function enhanceProviderDetail(){
     const root=document.getElementById('providerDetail');
     if(!root||root.dataset.simplified==='1'||root.querySelector('.clinic-essentials'))return;
@@ -155,9 +196,12 @@
   }
 
   addStyles();
-  const init=()=>{simplifyFilters();enhanceProviderDetail();};
+  const init=()=>{simplifyFilters();simplifyProviderCards();enhanceProviderDetail();};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
+
+  const grid=document.getElementById('providerGrid');
+  if(grid)new MutationObserver(()=>simplifyProviderCards()).observe(grid,{childList:true});
 
   const detail=document.getElementById('providerDetail');
   if(detail)new MutationObserver(()=>{
