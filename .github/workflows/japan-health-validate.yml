@@ -86,7 +86,7 @@ jobs:
           grep -Fq 'Provider-level only:' home-search.js
           grep -Fq 'requested-service communication route' home-search.js
           grep -Fq 'TOP ACCESS-EVIDENCE MATCH' home-search.js
-          grep -Fq 'Neither is a clinical-quality ranking.' home-search.js
+          grep -Fq 'Neither it nor the International Access Score is a clinical-quality ranking.' home-search.js
           grep -Fq "s.area&&!areaMatches(p,s.area)" home-search.js
           grep -Fq "id:'general-care'" home-search.js
           grep -Fq "terms:['fever','temperature','cold','flu'" home-search.js
@@ -94,9 +94,10 @@ jobs:
           grep -Fq 'We interpreted this as' home-search.js
           grep -Fq 'No documented match for all selected constraints.' home-search.js
           grep -Fq 'Search all Tokyo instead' home-search.js
-          grep -Fq 'International Access Score uses communication 40%' home-search.js
+          grep -Fq 'International Access Score:' home-search.js
+          grep -Fq 'Weighting: communication 40%' home-search.js
           grep -Fq 'Open verification gaps:' home-search.js
-          grep -Fq '/home-product-polish.js' home-search.js
+          ! grep -Fq "s.src='/home-product-polish.js'" home-search.js
           grep -Fq '__JAPAN_HEALTH_HOME_PRODUCT_POLISH__' home-product-polish.js
           grep -Fq "['ginza','Chuo']" home-product-polish.js
           grep -Fq "['roppongi','Minato']" home-product-polish.js
@@ -108,6 +109,8 @@ jobs:
           grep -Fq 'Copy search link' home-search-state.js
           grep -Fq "params.set('verified','1')" home-search-state.js
           grep -Fq 'No official-source checked result satisfies the current search.' home-search-state.js
+          grep -Fq "inertSearchType?.remove()" home-search-state.js
+          grep -Fq 'access-method-home' home-search-state.js
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
           grep -Fq 'Demo provider records are not real recommendations' index.html
