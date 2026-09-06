@@ -78,6 +78,44 @@
     language:document.getElementById('languageHome')?.value||'any'
   });
 
+  function compactAccessSignals(card,provider){
+    if(card.querySelector('[data-home-access-signals]'))return;
+    const facts=[...card.querySelectorAll('.fast-facts>div')];
+    const languageFact=facts.find(item=>item.querySelector('small')?.textContent?.trim()==='REQUESTED-SERVICE LANGUAGE');
+    const languageText=languageFact?.querySelector('b')?.textContent?.trim()||'';
+    let communication='Communication needs verification';
+    let communicationClass='verify';
+    if(/^Service-level:/i.test(languageText)){
+      communication=languageText.replace(/^Service-level:\s*/i,'');
+      communicationClass='documented';
+    }else if(/^Provider-level only:/i.test(languageText)){
+      communication=languageText.replace(/^Provider-level only:\s*/i,'');
+      communicationClass='provider';
+    }
+
+    const s=currentSearch();
+    let pathway='Visitor / resident pathway not selected';
+    let pathwayClass='neutral';
+    if(s.audience==='visitor'){
+      pathway=Array.isArray(provider.audience)&&provider.audience.includes('visitor')?'Visitor pathway in record':'Visitor pathway needs verification';
+      pathwayClass=pathway.includes('in record')?'documented':'verify';
+    }else if(s.audience==='resident'){
+      pathway=Array.isArray(provider.audience)&&provider.audience.includes('resident')?'Resident pathway in record':'Resident pathway needs verification';
+      pathwayClass=pathway.includes('in record')?'documented':'verify';
+    }else if(Array.isArray(provider.audience)&&provider.audience.length){
+      pathway=provider.audience.includes('visitor')&&provider.audience.includes('resident')?'Visitor + resident pathways in record':provider.audience.includes('visitor')?'Visitor pathway in record':'Resident pathway in record';
+      pathwayClass='provider';
+    }
+
+    const strip=document.createElement('div');
+    strip.className='home-access-signals';
+    strip.dataset.homeAccessSignals='true';
+    strip.setAttribute('aria-label','Access information');
+    strip.innerHTML=`<span class="${communicationClass}">${communication}</span><span class="${pathwayClass}">${pathway}</span>`;
+    const actions=card.querySelector('.fast-actions');
+    if(actions)actions.before(strip);else card.appendChild(strip);
+  }
+
   function ensureDialog(){
     let dialog=document.getElementById('homeAccessHandoff');
     if(dialog)return dialog;
@@ -112,7 +150,7 @@
             audience:s.audience==='all'?'unknown':s.audience,
             city:'Tokyo',
             need:s.query||'Healthcare access verification',
-            notes:`Please verify current access logistics for the selected provider. Area constraint: ${s.area||'Any Tokyo area'}.`,
+            notes:`Please verify current access logistics for the selected provider. Area constraint: ${s.area||'Any Tokyo area'}. Communication requirement: ${s.language==='any'?'Any documented pathway':s.language}. Provider record status: ${provider.recordStatus||'unknown'}.`,
             providerId:provider.id||null,
             providerName:provider.name||null,
             timeframe:'flexible',
@@ -154,11 +192,17 @@
   }
 
   function decorate(){
-    grid.querySelectorAll('.fast-card').forEach(card=>{
+    const cards=[...grid.querySelectorAll('.fast-card')];
+    cards.forEach((card,index)=>{
+      card.hidden=index>=3;
       const name=card.querySelector('h3')?.textContent?.trim();
       const provider=(window.PROVIDERS||[]).find(p=>p.name===name);
       const actions=card.querySelector('.fast-actions');
-      if(!provider||!actions||actions.querySelector('[data-access-handoff-home]'))return;
+      if(!provider)return;
+      compactAccessSignals(card,provider);
+      const primary=actions?.querySelector('.btn.primary');
+      if(primary)primary.textContent='View clinic';
+      if(!actions||actions.querySelector('[data-access-handoff-home]'))return;
       const button=document.createElement('button');
       button.type='button';
       button.className='btn ghost';
@@ -167,12 +211,23 @@
       button.addEventListener('click',()=>openHandoff(provider));
       actions.appendChild(button);
     });
+
+    let note=grid.querySelector('[data-home-three-note]');
+    if(cards.length>3){
+      if(!note){
+        note=document.createElement('div');
+        note.className='home-three-note';
+        note.dataset.homeThreeNote='true';
+        grid.appendChild(note);
+      }
+      note.innerHTML='<span>Showing 3 strongest access matches from the current search. This is not a clinical-quality ranking.</span><a href="/clinics.html">See all matching clinics →</a>';
+    }else note?.remove();
   }
 
   new MutationObserver(decorate).observe(grid,{childList:true,subtree:true});
   decorate();
 
   const style=document.createElement('style');
-  style.textContent=`.home-urgent-notice{max-width:calc(1180px - 56px);margin:12px auto 0;padding:14px 16px;border:1px solid #f0b8a8;border-radius:14px;background:#fff7f4;color:#713220;display:flex;align-items:center;justify-content:space-between;gap:16px}.home-urgent-notice[hidden]{display:none!important}.home-urgent-notice div{display:grid;gap:3px}.home-urgent-notice strong{font-size:12px}.home-urgent-notice span{font-size:10px;line-height:1.5;color:#7a493a}.home-urgent-call{flex:0 0 auto;border-radius:10px;padding:10px 14px;background:#a52d1d;color:#fff;text-decoration:none;font-size:11px;font-weight:900}.home-handoff-dialog{width:min(520px,calc(100vw - 24px));border:0;border-radius:18px;padding:0;box-shadow:0 24px 70px rgba(19,43,69,.25)}.home-handoff-dialog::backdrop{background:rgba(13,31,48,.48)}.home-handoff-shell{position:relative;padding:24px;display:grid;gap:12px}.home-handoff-shell h2{font-size:24px;margin:0}.home-handoff-kicker{font-size:8px;font-weight:900;letter-spacing:.08em;color:#2155ff}.home-handoff-copy{font-size:10px;line-height:1.55;color:#64748b;margin:0}.home-handoff-selected{padding:10px;border-radius:10px;background:#f4f7fb}.home-handoff-selected b,.home-handoff-selected span{display:block}.home-handoff-selected b{font-size:11px}.home-handoff-selected span{font-size:8px;color:#64748b;margin-top:3px}.home-handoff-shell label{font-size:9px;font-weight:800;color:#53687c}.home-handoff-shell label>input:not([type=checkbox]){width:100%;box-sizing:border-box;height:44px;margin-top:5px;border:1px solid #d7e0e9;border-radius:10px;padding:0 11px}.home-handoff-consent{display:flex;gap:8px;align-items:flex-start;font-weight:600!important;line-height:1.45}.home-handoff-close{position:absolute;right:14px;top:14px;border:0;background:transparent;font-size:24px;cursor:pointer}.home-handoff-status{min-height:18px;font-size:9px;line-height:1.45;color:#526579;margin:0}@media(max-width:700px){.home-urgent-notice{margin:12px 20px 0;align-items:flex-start}.home-urgent-call{margin-top:1px}}@media(max-width:520px){.home-urgent-notice{flex-direction:column}.home-urgent-call{width:100%;box-sizing:border-box;text-align:center}.home-handoff-dialog{margin:auto 12px 12px}.home-handoff-shell{padding:22px 18px}}`;
+  style.textContent=`.home-access-signals{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 2px}.home-access-signals span{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border-radius:999px;font-size:9px;font-weight:800;line-height:1.25}.home-access-signals .documented{background:#e9f7f2;color:#176b58}.home-access-signals .provider{background:#eef3ff;color:#35528c}.home-access-signals .verify{background:#fff4df;color:#8a5a18}.home-access-signals .neutral{background:#f3f5f7;color:#637487}.home-three-note{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid #dfe6ee;border-radius:12px;background:#fbfcfe;color:#637487;font-size:10px}.home-three-note a{font-weight:900;color:#35528c;text-decoration:none;white-space:nowrap}.home-urgent-notice{max-width:calc(1180px - 56px);margin:12px auto 0;padding:14px 16px;border:1px solid #f0b8a8;border-radius:14px;background:#fff7f4;color:#713220;display:flex;align-items:center;justify-content:space-between;gap:16px}.home-urgent-notice[hidden]{display:none!important}.home-urgent-notice div{display:grid;gap:3px}.home-urgent-notice strong{font-size:12px}.home-urgent-notice span{font-size:10px;line-height:1.5;color:#7a493a}.home-urgent-call{flex:0 0 auto;border-radius:10px;padding:10px 14px;background:#a52d1d;color:#fff;text-decoration:none;font-size:11px;font-weight:900}.home-handoff-dialog{width:min(520px,calc(100vw - 24px));border:0;border-radius:18px;padding:0;box-shadow:0 24px 70px rgba(19,43,69,.25)}.home-handoff-dialog::backdrop{background:rgba(13,31,48,.48)}.home-handoff-shell{position:relative;padding:24px;display:grid;gap:12px}.home-handoff-shell h2{font-size:24px;margin:0}.home-handoff-kicker{font-size:8px;font-weight:900;letter-spacing:.08em;color:#2155ff}.home-handoff-copy{font-size:10px;line-height:1.55;color:#64748b;margin:0}.home-handoff-selected{padding:10px;border-radius:10px;background:#f4f7fb}.home-handoff-selected b,.home-handoff-selected span{display:block}.home-handoff-selected b{font-size:11px}.home-handoff-selected span{font-size:8px;color:#64748b;margin-top:3px}.home-handoff-shell label{font-size:9px;font-weight:800;color:#53687c}.home-handoff-shell label>input:not([type=checkbox]){width:100%;box-sizing:border-box;height:44px;margin-top:5px;border:1px solid #d7e0e9;border-radius:10px;padding:0 11px}.home-handoff-consent{display:flex;gap:8px;align-items:flex-start;font-weight:600!important;line-height:1.45}.home-handoff-close{position:absolute;right:14px;top:14px;border:0;background:transparent;font-size:24px;cursor:pointer}.home-handoff-status{min-height:18px;font-size:9px;line-height:1.45;color:#526579;margin:0}@media(max-width:700px){.home-three-note{align-items:flex-start;flex-direction:column}.home-urgent-notice{margin:12px 20px 0;align-items:flex-start}.home-urgent-call{margin-top:1px}}@media(max-width:520px){.home-access-signals{display:grid;grid-template-columns:1fr}.home-access-signals span{border-radius:10px}.home-urgent-notice{flex-direction:column}.home-urgent-call{width:100%;box-sizing:border-box;text-align:center}.home-handoff-dialog{margin:auto 12px 12px}.home-handoff-shell{padding:22px 18px}}`;
   document.head.appendChild(style);
 })();
