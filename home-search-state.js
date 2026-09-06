@@ -33,6 +33,28 @@
     return 'Patient pathway needs verification';
   }
 
+  function directoryHref(){
+    const params=new URLSearchParams();
+    const query=document.getElementById('careQuery')?.value.trim()||'';
+    const area=document.getElementById('area')?.value.trim()||'';
+    const audience=document.getElementById('audienceHome')?.value||'all';
+    const language=document.getElementById('languageHome')?.value||'any';
+    if(query)params.set('q',query);
+    params.set('city','Tokyo');
+    if(area)params.set('area',area);
+    if(audience!=='all')params.set('audience',audience);
+    if(language!=='any')params.set('language',language==='direct'?'direct':'interpreter');
+    return `/clinics.html?${params.toString()}#find`;
+  }
+
+  function syncDirectoryLinks(){
+    const href=directoryHref();
+    document.querySelectorAll('a[href="/clinics.html"]').forEach(link=>{
+      link.href=href;
+      link.dataset.searchContinuity='true';
+    });
+  }
+
   function ensureAudienceShortcut(){
     const audienceSelect=document.getElementById('audienceHome');
     const optional=form.querySelector('.optional-filters');
@@ -100,9 +122,13 @@
   }
 
   function decorate(){grid.querySelectorAll('.fast-card').forEach(decorateCard);}
-  new MutationObserver(decorate).observe(grid,{childList:true,subtree:true});
+  new MutationObserver(()=>{decorate();syncDirectoryLinks();}).observe(grid,{childList:true,subtree:true});
   ensureAudienceShortcut();
   decorate();
+  syncDirectoryLinks();
+  form.addEventListener('input',syncDirectoryLinks);
+  form.addEventListener('change',syncDirectoryLinks);
+  form.addEventListener('submit',()=>requestAnimationFrame(syncDirectoryLinks));
 
   const style=document.createElement('style');
   style.textContent=`
