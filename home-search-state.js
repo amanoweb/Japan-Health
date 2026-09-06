@@ -33,6 +33,36 @@
     return 'Patient pathway needs verification';
   }
 
+  function ensureAudienceShortcut(){
+    const audienceSelect=document.getElementById('audienceHome');
+    const optional=form.querySelector('.optional-filters');
+    if(!audienceSelect||!optional||form.querySelector('[data-audience-shortcut]'))return;
+
+    const wrap=document.createElement('div');
+    wrap.className='home-audience-shortcut';
+    wrap.dataset.audienceShortcut='true';
+    wrap.innerHTML='<span>Who is the care for?</span><div role="group" aria-label="Visitor or resident"><button type="button" data-audience-value="all">Not sure / either</button><button type="button" data-audience-value="visitor">I am visiting Japan</button><button type="button" data-audience-value="resident">I live in Japan</button></div>';
+    optional.before(wrap);
+
+    const sync=()=>{
+      wrap.querySelectorAll('[data-audience-value]').forEach(button=>{
+        const active=button.dataset.audienceValue===audienceSelect.value;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-pressed',String(active));
+      });
+    };
+
+    wrap.addEventListener('click',event=>{
+      const button=event.target.closest('[data-audience-value]');
+      if(!button)return;
+      audienceSelect.value=button.dataset.audienceValue;
+      audienceSelect.dispatchEvent(new Event('change',{bubbles:true}));
+      sync();
+    });
+    audienceSelect.addEventListener('change',sync);
+    sync();
+  }
+
   function decorateCard(card){
     if(card.dataset.homeUxReady==='1')return;
     const p=providerForCard(card);
@@ -71,11 +101,18 @@
 
   function decorate(){grid.querySelectorAll('.fast-card').forEach(decorateCard);}
   new MutationObserver(decorate).observe(grid,{childList:true,subtree:true});
+  ensureAudienceShortcut();
   decorate();
 
   const style=document.createElement('style');
   style.textContent=`
     .home-search-state{display:none!important}
+    .home-audience-shortcut{display:flex;align-items:center;gap:12px;margin:12px 4px 0;padding-top:11px;border-top:1px solid #edf1f5}
+    .home-audience-shortcut>span{flex:0 0 auto;font-size:11px;font-weight:800;color:#526579}
+    .home-audience-shortcut>div{display:flex;gap:7px;flex-wrap:wrap}
+    .home-audience-shortcut button{min-height:38px;border:1px solid #d7e0e9;border-radius:999px;background:#fff;padding:7px 12px;color:#425a70;font-size:10px;font-weight:800;cursor:pointer}
+    .home-audience-shortcut button.active{border-color:#2155ff;background:#eef3ff;color:#17324d;box-shadow:0 0 0 1px #2155ff inset}
+    .home-audience-shortcut button:focus-visible{outline:3px solid rgba(33,85,255,.28);outline-offset:2px}
     .home-access-glance{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 2px}
     .home-access-glance span{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border-radius:999px;background:#f3f6fa;color:#425a70;font-size:9px;font-weight:800;line-height:1.25}
     .fast-card{display:flex;flex-direction:column}
@@ -85,6 +122,9 @@
     .home-help-link:focus-visible,.fast-actions a:focus-visible,.optional-filters summary:focus-visible,.quick-menu button:focus-visible{outline:3px solid rgba(33,85,255,.28);outline-offset:3px}
     #results{scroll-margin-top:20px}
     @media(max-width:700px){
+      .home-audience-shortcut{align-items:flex-start;flex-direction:column}
+      .home-audience-shortcut>div{width:100%}
+      .home-audience-shortcut button{flex:1 1 140px}
       .fast-results{padding-top:30px}
       .fast-card{padding:16px}
       .fast-card h3{font-size:19px}
