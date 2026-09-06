@@ -142,7 +142,10 @@
       const reasons=[];
       if(verifiedOnly)reasons.push('official-source checked records');
       if(serviceLanguageOnly&&state().language!=='any')reasons.push('requested-service language evidence');
-      empty.innerHTML=`<b>No result satisfies the active evidence filter${reasons.length>1?'s':''}.</b><span>The current result set has no provider matching ${escapeHtml(reasons.join(' and '))} together with your other constraints. Japan Health will not promote provider-wide language support to a specialist service or silently relax the filter.</span>`;
+      const verifiedOnlyMessage=verifiedOnly&&!serviceLanguageOnly
+        ?'No official-source checked result satisfies the current search.'
+        :`No result satisfies the active evidence filter${reasons.length>1?'s':''}.`;
+      empty.innerHTML=`<b>${verifiedOnlyMessage}</b><span>The current result set has no provider matching ${escapeHtml(reasons.join(' and '))} together with your other constraints. Japan Health will not promote provider-wide language support to a specialist service or silently relax the filter.</span>`;
     }else empty?.remove();
 
     if(cards.length&&(verifiedOnly||serviceLanguageOnly)){
