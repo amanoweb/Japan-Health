@@ -5,7 +5,8 @@
   const area=document.getElementById('area');
   const form=document.getElementById('careSearchForm');
   const grid=document.getElementById('quickResults');
-  if(!area||!form||!grid)return;
+  const careQuery=document.getElementById('careQuery');
+  if(!area||!form||!grid||!careQuery)return;
 
   const normalize=v=>String(v||'').trim().toLowerCase();
   const areaAliases=new Map([
@@ -38,6 +39,27 @@
     }else delete area.dataset.enteredArea;
   },true);
 
+  const urgentTerms=[
+    'chest pain','difficulty breathing','trouble breathing','shortness of breath',
+    'cannot breathe','can\'t breathe','stroke','face droop','arm weakness',
+    'slurred speech','unconscious','unresponsive','severe bleeding','heavy bleeding',
+    'seizure','convulsion'
+  ];
+  const urgentNotice=document.createElement('aside');
+  urgentNotice.className='home-urgent-notice';
+  urgentNotice.hidden=true;
+  urgentNotice.setAttribute('role','alert');
+  urgentNotice.innerHTML='<div><strong>This may need urgent care.</strong><span>Japan Health is not an emergency-triage service. If you think this could be a medical emergency in Japan, call 119 or go to an emergency department.</span></div><a class="home-urgent-call" href="tel:119" aria-label="Call emergency services in Japan at 119">Call 119</a>';
+  form.insertAdjacentElement('afterend',urgentNotice);
+
+  function updateUrgentNotice(){
+    const query=normalize(careQuery.value);
+    urgentNotice.hidden=!urgentTerms.some(term=>query.includes(term));
+  }
+  careQuery.addEventListener('input',updateUrgentNotice);
+  form.addEventListener('submit',updateUrgentNotice,true);
+  updateUrgentNotice();
+
   const datalist=document.createElement('datalist');
   datalist.id='tokyo-area-suggestions';
   ['Ginza','Shinjuku','Shibuya','Roppongi','Akihabara','Tokyo Station','Marunouchi','Ikebukuro','Ueno','Bunkyo','Tsukiji'].forEach(name=>{
@@ -50,7 +72,7 @@
 
   const isRecorded=v=>Boolean(v&&!/^unknown$/i.test(String(v).trim()));
   const currentSearch=()=>({
-    query:document.getElementById('careQuery')?.value.trim()||'',
+    query:careQuery.value.trim(),
     area:area.value.trim(),
     audience:document.getElementById('audienceHome')?.value||'all',
     language:document.getElementById('languageHome')?.value||'any'
@@ -151,6 +173,6 @@
   decorate();
 
   const style=document.createElement('style');
-  style.textContent=`.home-handoff-dialog{width:min(520px,calc(100vw - 24px));border:0;border-radius:18px;padding:0;box-shadow:0 24px 70px rgba(19,43,69,.25)}.home-handoff-dialog::backdrop{background:rgba(13,31,48,.48)}.home-handoff-shell{position:relative;padding:24px;display:grid;gap:12px}.home-handoff-shell h2{font-size:24px;margin:0}.home-handoff-kicker{font-size:8px;font-weight:900;letter-spacing:.08em;color:#2155ff}.home-handoff-copy{font-size:10px;line-height:1.55;color:#64748b;margin:0}.home-handoff-selected{padding:10px;border-radius:10px;background:#f4f7fb}.home-handoff-selected b,.home-handoff-selected span{display:block}.home-handoff-selected b{font-size:11px}.home-handoff-selected span{font-size:8px;color:#64748b;margin-top:3px}.home-handoff-shell label{font-size:9px;font-weight:800;color:#53687c}.home-handoff-shell label>input:not([type=checkbox]){width:100%;box-sizing:border-box;height:44px;margin-top:5px;border:1px solid #d7e0e9;border-radius:10px;padding:0 11px}.home-handoff-consent{display:flex;gap:8px;align-items:flex-start;font-weight:600!important;line-height:1.45}.home-handoff-close{position:absolute;right:14px;top:14px;border:0;background:transparent;font-size:24px;cursor:pointer}.home-handoff-status{min-height:18px;font-size:9px;line-height:1.45;color:#526579;margin:0}@media(max-width:520px){.home-handoff-dialog{margin:auto 12px 12px}.home-handoff-shell{padding:22px 18px}}`;
+  style.textContent=`.home-urgent-notice{max-width:calc(1180px - 56px);margin:12px auto 0;padding:14px 16px;border:1px solid #f0b8a8;border-radius:14px;background:#fff7f4;color:#713220;display:flex;align-items:center;justify-content:space-between;gap:16px}.home-urgent-notice[hidden]{display:none!important}.home-urgent-notice div{display:grid;gap:3px}.home-urgent-notice strong{font-size:12px}.home-urgent-notice span{font-size:10px;line-height:1.5;color:#7a493a}.home-urgent-call{flex:0 0 auto;border-radius:10px;padding:10px 14px;background:#a52d1d;color:#fff;text-decoration:none;font-size:11px;font-weight:900}.home-handoff-dialog{width:min(520px,calc(100vw - 24px));border:0;border-radius:18px;padding:0;box-shadow:0 24px 70px rgba(19,43,69,.25)}.home-handoff-dialog::backdrop{background:rgba(13,31,48,.48)}.home-handoff-shell{position:relative;padding:24px;display:grid;gap:12px}.home-handoff-shell h2{font-size:24px;margin:0}.home-handoff-kicker{font-size:8px;font-weight:900;letter-spacing:.08em;color:#2155ff}.home-handoff-copy{font-size:10px;line-height:1.55;color:#64748b;margin:0}.home-handoff-selected{padding:10px;border-radius:10px;background:#f4f7fb}.home-handoff-selected b,.home-handoff-selected span{display:block}.home-handoff-selected b{font-size:11px}.home-handoff-selected span{font-size:8px;color:#64748b;margin-top:3px}.home-handoff-shell label{font-size:9px;font-weight:800;color:#53687c}.home-handoff-shell label>input:not([type=checkbox]){width:100%;box-sizing:border-box;height:44px;margin-top:5px;border:1px solid #d7e0e9;border-radius:10px;padding:0 11px}.home-handoff-consent{display:flex;gap:8px;align-items:flex-start;font-weight:600!important;line-height:1.45}.home-handoff-close{position:absolute;right:14px;top:14px;border:0;background:transparent;font-size:24px;cursor:pointer}.home-handoff-status{min-height:18px;font-size:9px;line-height:1.45;color:#526579;margin:0}@media(max-width:700px){.home-urgent-notice{margin:12px 20px 0;align-items:flex-start}.home-urgent-call{margin-top:1px}}@media(max-width:520px){.home-urgent-notice{flex-direction:column}.home-urgent-call{width:100%;box-sizing:border-box;text-align:center}.home-handoff-dialog{margin:auto 12px 12px}.home-handoff-shell{padding:22px 18px}}`;
   document.head.appendChild(style);
 })();
