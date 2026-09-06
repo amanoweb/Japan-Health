@@ -70,6 +70,7 @@ jobs:
           grep -Fq 'What do you need help with?' index.html
           grep -Fq 'Tokyo area' index.html
           grep -Fq 'Visitor or resident' index.html
+          grep -Fq 'Optional filters' index.html
           grep -Fq 'No clinical-quality ranking' index.html
           grep -Fq 'does not silently relax' index.html
           grep -Fq 'Symptoms are routed to broad care categories' index.html
@@ -85,7 +86,6 @@ jobs:
           grep -Fq 'Service-level language evidence' home-search.js
           grep -Fq 'Provider-level only:' home-search.js
           grep -Fq 'requested-service communication route' home-search.js
-          grep -Fq 'TOP ACCESS-EVIDENCE MATCH' home-search.js
           grep -Fq 'Neither it nor the International Access Score is a clinical-quality ranking.' home-search.js
           grep -Fq "s.area&&!areaMatches(p,s.area)" home-search.js
           grep -Fq "id:'general-care'" home-search.js
@@ -101,16 +101,17 @@ jobs:
           grep -Fq '__JAPAN_HEALTH_HOME_PRODUCT_POLISH__' home-product-polish.js
           grep -Fq "['ginza','Chuo']" home-product-polish.js
           grep -Fq "['roppongi','Minato']" home-product-polish.js
-          grep -Fq 'BOOKING READINESS' home-product-polish.js
-          grep -Fq 'access rules documented' home-product-polish.js
-          grep -Fq 'Next access step:' home-product-polish.js
           grep -Fq "fetch('/api/lead'" home-product-polish.js
-          grep -Fq 'Official-source checked only' home-search-state.js
-          grep -Fq 'Copy search link' home-search-state.js
-          grep -Fq "params.set('verified','1')" home-search-state.js
-          grep -Fq 'No official-source checked result satisfies the current search.' home-search-state.js
-          grep -Fq "inertSearchType?.remove()" home-search-state.js
-          grep -Fq 'access-method-home' home-search-state.js
+          grep -Fq 'AMECA remains a downstream partner' home-product-polish.js
+          ! grep -Fq 'BOOKING READINESS' home-product-polish.js
+          ! grep -Fq 'TOTAL-COST VISIBILITY' home-product-polish.js
+          grep -Fq '__JAPAN_HEALTH_HOME_UX__' home-search-state.js
+          grep -Fq 'Communication route needs verification' home-search-state.js
+          grep -Fq 'Visitor pathway in record' home-search-state.js
+          grep -Fq "primary.textContent='View clinic'" home-search-state.js
+          grep -Fq 'Need help accessing this?' home-search-state.js
+          ! grep -Fq 'Official-source checked only' home-search-state.js
+          ! grep -Fq 'Copy search link' home-search-state.js
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
           grep -Fq 'Demo provider records are not real recommendations' index.html
