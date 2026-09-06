@@ -24,11 +24,14 @@
       .directory-more-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 12px 12px}
       .directory-more-field{display:grid;gap:5px;font-size:8px;font-weight:900;color:#657789}
       .directory-more-field select{width:100%;min-height:44px}
+      .clinic-detail-intro{margin:10px 0 2px;font-size:9px;line-height:1.55;color:#64748b}
       .clinic-essentials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}
       .clinic-essential{padding:11px;border:1px solid #e1e8ef;border-radius:11px;background:#f8fafc}
       .clinic-essential small,.clinic-essential b{display:block}
       .clinic-essential small{font-size:7px;letter-spacing:.05em;color:#718295}
       .clinic-essential b{font-size:10px;line-height:1.4;margin-top:4px;color:#263b50}
+      .clinic-essential.booking{grid-column:1/-1;background:#f5f8ff;border-color:#d9e2ff}
+      .clinic-essential.booking b{font-size:11px}
       .clinic-detail-more{margin:14px 0;border:1px solid #dfe6ee;border-radius:12px;background:#fff}
       .clinic-detail-more>summary{cursor:pointer;padding:12px 13px;font-size:10px;font-weight:900;color:#35528c;list-style:none}
       .clinic-detail-more>summary::-webkit-details-marker{display:none}
@@ -38,6 +41,7 @@
       .clinic-handoff-note{margin:8px 0 0;font-size:8px;line-height:1.5;color:#718295}
       @media(max-width:700px){
         .directory-more-grid,.clinic-essentials{grid-template-columns:1fr}
+        .clinic-essential.booking{grid-column:auto}
         .directory-more-filters>summary,.clinic-detail-more>summary{min-height:44px;display:flex;align-items:center;justify-content:space-between}
       }
     `;
@@ -93,6 +97,15 @@
     return 'Visitor / Resident pathway needs verification';
   }
 
+  function bookingStartLabel(p){
+    if(p.coordinator==='required')return 'Start by confirming the coordinator pathway before trying to book directly.';
+    if(p.referral==='required')return 'A referral is recorded as required; confirm the referral route before booking.';
+    if(p.coordinator==='recommended')return 'A coordinator is recorded as recommended; confirm whether direct booking is accepted for your visit.';
+    if(p.referral==='varies'||p.coordinator==='varies')return 'Booking rules vary by pathway; confirm the current route for the service you need.';
+    if(p.referral==='no'&&p.coordinator==='no')return 'No referral or coordinator requirement is recorded; confirm the clinic’s current booking method before proceeding.';
+    return 'Current booking method needs verification with the clinic or coordination pathway.';
+  }
+
   function enhanceProviderDetail(){
     const root=document.getElementById('providerDetail');
     if(!root||root.dataset.simplified==='1'||root.querySelector('.clinic-essentials'))return;
@@ -106,20 +119,26 @@
     if(!meta||!action)return;
     root.dataset.simplified='1';
 
+    const intro=document.createElement('p');
+    intro.className='clinic-detail-intro';
+    intro.textContent='Start with the access facts most likely to affect whether you can use this clinic. These are record-based logistics, not medical advice or a guarantee of appointment availability.';
+    meta.after(intro);
+
     const costCount=[provider.medicalCost,provider.interpreterCost,provider.coordinatorCost].filter(recorded).length;
     const essentials=document.createElement('div');
     essentials.className='clinic-essentials';
     essentials.setAttribute('aria-label','Access essentials');
     essentials.innerHTML=`
-      <div class="clinic-essential"><small>COMMUNICATION</small><b>${communicationLabel(provider)}</b></div>
+      <div class="clinic-essential"><small>ENGLISH / COMMUNICATION</small><b>${communicationLabel(provider)}</b></div>
       <div class="clinic-essential"><small>VISITOR / RESIDENT</small><b>${audienceLabel(provider)}</b></div>
-      <div class="clinic-essential"><small>BOOKING RULES</small><b>Referral: ${human(provider.referral)} · Coordinator: ${human(provider.coordinator)}</b></div>
-      <div class="clinic-essential"><small>COST DATA</small><b>${costCount}/3 cost components recorded · data completeness only</b></div>`;
-    meta.after(essentials);
+      <div class="clinic-essential"><small>REFERRAL</small><b>${human(provider.referral)}</b></div>
+      <div class="clinic-essential"><small>COST INFO</small><b>${costCount}/3 cost components recorded · data completeness only</b></div>
+      <div class="clinic-essential booking"><small>HOW TO START</small><b>${bookingStartLabel(provider)}</b></div>`;
+    intro.after(essentials);
 
     const details=document.createElement('details');
     details.className='clinic-detail-more';
-    details.innerHTML='<summary>Access score, cost details & source evidence</summary><div class="clinic-detail-more-body"></div>';
+    details.innerHTML='<summary>More access details, cost data & source evidence</summary><div class="clinic-detail-more-body"></div>';
     const body=details.querySelector('.clinic-detail-more-body');
     let node=essentials.nextSibling;
     while(node&&node!==action){
@@ -131,7 +150,7 @@
     action.textContent='Ask Japan Health for access help';
     const note=document.createElement('p');
     note.className='clinic-handoff-note';
-    note.textContent='Coordination may be routed to a downstream partner, including AMECA when configured. This is not a clinical recommendation or booking guarantee.';
+    note.textContent='Coordination may be routed to a downstream partner, including AMECA when configured. This is not a clinical recommendation, booking guarantee, or confirmation of current availability.';
     action.after(note);
   }
 
