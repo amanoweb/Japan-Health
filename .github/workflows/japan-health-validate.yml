@@ -21,6 +21,7 @@ jobs:
           node --check api/providers.js
           node --check home-search.js
           node --check home-product-polish.js
+          node --check home-search-state.js
           node --check trust-controls.js
           node --check access-confidence.js
           node --check directory-intelligence.js
@@ -59,6 +60,8 @@ jobs:
           grep -Fq 'href="/app.js"' index.html
           ! grep -Fq '<script src="/app.js"></script>' index.html
           grep -Fq '<script src="/home-search.js"></script>' index.html
+          grep -Fq '<script src="/home-product-polish.js"></script>' index.html
+          grep -Fq '<script src="/home-search-state.js"></script>' index.html
           grep -Fq '<script src="/data/providers.js"></script>' index.html
           grep -Fq '<script src="/data/provider-service-access-batch-2026-09-05.js"></script>' index.html
           ! grep -Fq '/api/providers?format=js' index.html
@@ -94,11 +97,17 @@ jobs:
           grep -Fq 'International Access Score uses communication 40%' home-search.js
           grep -Fq 'Open verification gaps:' home-search.js
           grep -Fq '/home-product-polish.js' home-search.js
+          grep -Fq '__JAPAN_HEALTH_HOME_PRODUCT_POLISH__' home-product-polish.js
           grep -Fq "['ginza','Chuo']" home-product-polish.js
           grep -Fq "['roppongi','Minato']" home-product-polish.js
           grep -Fq 'BOOKING READINESS' home-product-polish.js
           grep -Fq 'access rules documented' home-product-polish.js
           grep -Fq 'Next access step:' home-product-polish.js
+          grep -Fq "fetch('/api/lead'" home-product-polish.js
+          grep -Fq 'Official-source checked only' home-search-state.js
+          grep -Fq 'Copy search link' home-search-state.js
+          grep -Fq "params.set('verified','1')" home-search-state.js
+          grep -Fq 'No official-source checked result satisfies the current search.' home-search-state.js
           grep -Fq 'VALIDATION MVP' index.html
           grep -Fq 'does not diagnose' index.html
           grep -Fq 'Demo provider records are not real recommendations' index.html
