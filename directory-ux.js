@@ -95,16 +95,16 @@
 
   function enhanceProviderDetail(){
     const root=document.getElementById('providerDetail');
-    if(!root||root.dataset.simplified==='1')return;
+    if(!root||root.dataset.simplified==='1'||root.querySelector('.clinic-essentials'))return;
     const title=root.querySelector('h2');
     if(!title)return;
     const provider=(window.PROVIDERS||[]).find(p=>p.name===title.textContent.trim());
     if(!provider)return;
-    root.dataset.simplified='1';
 
     const meta=root.querySelector('.provider-meta');
     const action=[...root.querySelectorAll('button')].find(b=>/coordinator/i.test(b.textContent||''));
     if(!meta||!action)return;
+    root.dataset.simplified='1';
 
     const costCount=[provider.medicalCost,provider.interpreterCost,provider.coordinatorCost].filter(recorded).length;
     const essentials=document.createElement('div');
@@ -142,7 +142,7 @@
 
   const detail=document.getElementById('providerDetail');
   if(detail)new MutationObserver(()=>{
-    if(!detail.querySelector('h2'))return;
+    if(!detail.querySelector('h2')||detail.querySelector('.clinic-essentials'))return;
     detail.dataset.simplified='';
     enhanceProviderDetail();
   }).observe(detail,{childList:true});
