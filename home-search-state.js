@@ -7,6 +7,21 @@
   const validLanguage=new Set(['any','direct','interpreter']);
   let verifiedOnly=false;
 
+  const searchOptions=form.querySelector('.search-options');
+  if(searchOptions&&!$('commonReasonHome')){
+    const reasonField=document.createElement('label');
+    reasonField.className='field home-common-reason';
+    reasonField.innerHTML=`<span>Common reason for visit</span><select id="commonReasonHome" aria-label="Common reason for visit"><option value="">Choose a common reason…</option><optgroup label="Everyday illness"><option value="Fever">Fever</option><option value="Cold or flu">Cold or flu</option><option value="Cough">Cough</option><option value="Sore throat">Sore throat</option><option value="Headache">Headache</option><option value="Dizziness">Dizziness</option></optgroup><optgroup label="Stomach / digestive"><option value="Stomach pain">Stomach pain</option><option value="Vomiting">Vomiting</option><option value="Diarrhea">Diarrhea</option></optgroup><optgroup label="Dental"><option value="Toothache">Toothache</option><option value="Dental care">General dental care</option></optgroup><optgroup label="Heart"><option value="Chest pain">Chest pain</option><option value="Palpitations">Palpitations</option><option value="Cardiology">Cardiology</option></optgroup><optgroup label="Women's health"><option value="Period or menstrual problem">Period or menstrual problem</option><option value="Women's health">Women's health</option><option value="Fertility / IVF">Fertility / IVF</option></optgroup><optgroup label="Neurology"><option value="Tremor">Tremor</option><option value="Parkinson's disease">Parkinson's disease</option><option value="Neurology">Neurology</option></optgroup><optgroup label="Preventive / planned care"><option value="Health checkup">Health checkup</option><option value="Screening">Screening</option><option value="Cancer second opinion">Cancer second opinion</option><option value="Internal medicine">Internal medicine</option></optgroup></select>`;
+    searchOptions.prepend(reasonField);
+    reasonField.querySelector('select')?.addEventListener('change',event=>{
+      const value=event.target.value;
+      if(!value||!controls.query)return;
+      controls.query.value=value;
+      event.target.value='';
+      form.requestSubmit();
+    });
+  }
+
   const bar=document.createElement('div');
   bar.className='home-search-state';
   bar.innerHTML=`<div class="home-search-state-main"><small>ACTIVE SEARCH</small><div id="homeSearchChips" class="home-search-chips" aria-live="polite"></div></div><div class="home-search-state-actions"><label class="home-verified-toggle"><input id="homeVerifiedOnly" type="checkbox"><span>Official-source checked only</span></label><button type="button" class="btn ghost home-share-search" id="homeShareSearch">Copy search link</button><span id="homeShareStatus" class="home-share-status" role="status" aria-live="polite"></span></div>`;
@@ -82,7 +97,7 @@
   new MutationObserver(()=>{summary.dataset.baseSummary='';applyVerifiedFilter()}).observe(grid,{childList:true,subtree:false});
 
   const style=document.createElement('style');
-  style.textContent=`.home-search-state{display:flex;justify-content:space-between;gap:14px;align-items:center;margin:-4px 0 18px;padding:12px 14px;border:1px solid #dfe6ee;border-radius:14px;background:#fbfcfe}.home-search-state-main small{display:block;font-size:7px;font-weight:900;letter-spacing:.08em;color:#718295;margin-bottom:6px}.home-search-chips{display:flex;gap:6px;flex-wrap:wrap}.home-search-chips span{display:inline-flex;gap:4px;align-items:center;padding:6px 8px;border-radius:999px;background:#eef3ff;color:#35528c;font-size:8px}.home-search-chips b{font-size:7px;text-transform:uppercase;letter-spacing:.04em}.home-search-state-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}.home-verified-toggle{display:flex;align-items:center;gap:6px;font-size:8px;font-weight:800;color:#526579;white-space:nowrap}.home-share-search{padding:8px 10px!important;font-size:8px!important}.home-share-status{font-size:8px;color:#526579;min-width:92px}@media(max-width:760px){.home-search-state{align-items:stretch;flex-direction:column}.home-search-state-actions{justify-content:flex-start}.home-share-status{min-width:0}}`;
+  style.textContent=`.search-options{grid-template-columns:repeat(3,minmax(0,1fr))}.home-common-reason select{font-weight:700;color:#334a62}.home-search-state{display:flex;justify-content:space-between;gap:14px;align-items:center;margin:-4px 0 18px;padding:12px 14px;border:1px solid #dfe6ee;border-radius:14px;background:#fbfcfe}.home-search-state-main small{display:block;font-size:7px;font-weight:900;letter-spacing:.08em;color:#718295;margin-bottom:6px}.home-search-chips{display:flex;gap:6px;flex-wrap:wrap}.home-search-chips span{display:inline-flex;gap:4px;align-items:center;padding:6px 8px;border-radius:999px;background:#eef3ff;color:#35528c;font-size:8px}.home-search-chips b{font-size:7px;text-transform:uppercase;letter-spacing:.04em}.home-search-state-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}.home-verified-toggle{display:flex;align-items:center;gap:6px;font-size:8px;font-weight:800;color:#526579;white-space:nowrap}.home-share-search{padding:8px 10px!important;font-size:8px!important}.home-share-status{font-size:8px;color:#526579;min-width:92px}@media(max-width:760px){.search-options{grid-template-columns:1fr}.home-search-state{align-items:stretch;flex-direction:column}.home-search-state-actions{justify-content:flex-start}.home-share-status{min-width:0}}`;
   document.head.appendChild(style);
 
   const hadQuery=restore();
