@@ -1,0 +1,7 @@
+{
+  "jnto": {"url": "https://www.jnto.go.jp/emergency/eng/mi_guide.html", "owner": "Japan National Tourism Organization", "category": "traveler-guidance"},
+  "mhlw": {"url": "https://www.mhlw.go.jp/stf/newpage_21895.html", "owner": "Ministry of Health, Labour and Welfare", "category": "insurance"},
+  "mofa-visa": {"url": "https://www.mofa.go.jp/j_info/visit/visa/medical_stay1.html", "owner": "Ministry of Foreign Affairs", "category": "medical-stay-visa"},
+  "mofa-coordinators": {"url": "https://www.mofa.go.jp/j_info/visit/visa/medical_stay2.html", "owner": "Ministry of Foreign Affairs", "category": "registered-coordinators"},
+  "mofa-travel": {"url": "https://www.mofa.go.jp/j_info/visit/visa/medical_stay3.html", "owner": "Ministry of Foreign Affairs", "category": "registered-travel-agencies"}
+}
