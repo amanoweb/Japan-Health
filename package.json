@@ -1,0 +1,13 @@
+{
+  "name": "japan-health",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Evidence-led English healthcare publication for international visitors and residents in Japan",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/check.mjs",
+    "check": "npm run build && npm test"
+  },
+  "engines": {"node": ">=20"}
+}

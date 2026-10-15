@@ -1,23 +1,41 @@
-# Japan Health Access Platform MVP
+# Japan Health — English-first medical information publication
 
-This repository is the canonical source for the consumer-facing **Japan Health** MVP for international patients in Japan. AMECA is a downstream fulfillment/coordination partner, not the public brand.
+This repository was rebuilt on 15 October 2026 from the prior Tokyo clinic-navigation prototype. It is a **new, static, crawlable publication** focused on explaining healthcare access in Japan. The previous lead-forwarding API and symptom-based matching interface are intentionally removed.
 
-## Differentiation
-- actual access intelligence, not only "English available"
-- doctor vs reception English
-- interpreter-enabled specialist access
-- resident vs visitor pathways
-- referral / self-pay / coordinator rules
-- transparent International Access Score
-- cost visibility: medical / interpreter / coordinator
-- source + last-verified fields
-- qualified lead handoff to AMECA or another partner
+## Product
+- Source-attributed English articles about visiting a clinic, resident insurance, medical-stay visas, specialist appointments, and treatment navigation.
+- Agency directory seeded from the Japanese Ministry of Foreign Affairs' named medical-stay guarantor lists; languages reflect the government listings, **not verified service acceptance**.
+- Clinic directory designed to remain empty until verified clinic information exists. No fabricated clinics or sponsors.
+- Clean, responsive pages with Article structured data, robots rules, social metadata, conditional canonical URLs and a multilingual-ready /en/ route hierarchy.
+- Sponsor-first ordering supported in the data model; sponsored placement is **not activated** until a real paid arrangement is approved and disclosed.
+- Zero patient intake, no stored health records, no automatic referral transfers.
 
-## Partner handoff
-`POST /api/lead` forwards qualified leads to `AMECA_LEAD_WEBHOOK_URL`, falling back to `GENERAL_PARTNER_WEBHOOK_URL`.
+## Run locally
+Node 20+ required. No npm dependencies.
 
-## Data policy
-Provider records may include demo, government-directory, and provider-level verified entries. Demo records must remain visibly labeled. Government-directory listings must not be treated as proof of physician English, reception English, insurance eligibility, visitor eligibility, interpreter support, prices, or current acceptance. Provider-level claims must be grounded in official sources and include verification metadata. Unknown fields stay unknown.
+\`\`\`sh
+npm run build
+npm test
+\`\`\`
 
-## Canonical branch
-`main` is the production/source-of-truth branch for Japan Health. The former FDA Readiness AI main branch was removed from production and preserved only in the temporary safety branch `archive/fda-old-main` during repository cleanup. `backup/japan-health-pre-cleanup` preserves the Japan Health state immediately before the cleanup.
+Open \`dist/en/index.html\` via a static HTTP server (for example \`python3 -m http.server 8080 -d dist\`).
+
+## Deployment
+Vercel configuration builds with \`npm run build\` and publishes \`dist/\`.
+Set \`SITE_URL=https://your-verified-domain.example\` to generate an absolute canonical URL and sitemap locally. Vercel's \`VERCEL_PROJECT_PRODUCTION_URL\` is used automatically when available. **Do not set a guessed domain.**
+
+There is no backend, database requirement or paid AI API for the launch site. The research MVP in \`research/\` is deliberately separate from publication.
+
+## Editing content
+- \`src/content.mjs\`: article copy, claim scope, references and source-check date.
+- \`src/agencies.mjs\`: agency listing information and sponsored flag.
+- \`public/styles.css\`: appearance.
+- \`scripts/build.mjs\`: static routes and SEO markup.
+
+New languages should use distinct URLs (for example \`/zh-cn/\`) and only be added to \`hreflang\` when **real translated, reviewed pages** exist. Keep /en/ URLs permanent.
+
+## Editorial safeguards
+See \`docs/EDITORIAL.md\`. Source-check dates must reflect a real check. The public pages are educational and may not replace medical, legal or insurance advice. Institution-specific information must be directly attributed.
+
+## Analytics and commercialization
+Outbound partner links are wired to a \`gtag\` event if GA4 is later configured, but **analytics is not active today**. Do not claim bookings from clicks. Paid placement, billing, lead-sharing, email collection, and automated medical content publishing require separate review and implementation.
